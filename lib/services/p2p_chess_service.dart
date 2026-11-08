@@ -3,14 +3,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:web_socket_channel/local_ws_server.dart'; 
 import 'package:chess/chess.dart' as chess_lib;
 
 enum P2PMode { host, join }
 
 class P2PChessService with ChangeNotifier {
   P2PMode? _mode;
-  WebSocketChannel? _channel;
+  dynamic _channel;
+  RawDatagramSocket? _discoverySocket;
   
   final StreamController<Map<String, dynamic>> _gameStream = StreamController.broadcast();
   Stream<Map<String, dynamic>> get gameStream => _gameStream.stream;
@@ -18,11 +18,64 @@ class P2PChessService with ChangeNotifier {
   chess_lib.Chess game = chess_lib.Chess();
   String? playerColor; 
   bool isConnected = false;
+  bool isSearching = false;
+
+  // --- DISCOVERY LOGICA ---
+
+  void _startBroadcasting(int port) async {
+    try {
+      _discoverySocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 8081);
+      _discoverySocket!.broadcastsEnabled = true;
+      
+      Timer.periodic(const Duration(seconds: 2), (timer) {
+        if (_mode != P2PMode.host) {
+          timer.cancel();
+          return;
+        }
+        final message = utf8.encode("CHESS_HOST_ALIVE:$port");
+        _discoverySocket!.send(message, InternetAddress('255.255.255.255'), 8081);
+      });
+    } catch (e) {
+      debugPrint('Discovery broadcast error: $e');
+    }
+  }
+
+  void _startListening() async {
+    isSearching = true;
+    notifyListeners();
+
+    try {
+      _discoverySocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 8081);
+      _discoverySocket!.listen((RawSocketEvent event) {
+        if (event == RawSocketEvent.read) {
+          Datagram? dg = _discoverySocket!.receive();
+          if (dg != null) {
+            final message = utf8.decode(dg.data);
+            if (message.startsWith("CHESS_HOST_ALIVE")) {
+              final port = int.parse(message.split(':')[1]);
+              final hostIp = dg.address?.address;
+              if (hostIp != null) {
+                debugPrint('Host gevonden op $hostIp:$port');
+                joinGame(hostIp, port);
+              }
+            }
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('Discovery listen error: $e');
+      isSearching = false;
+      notifyListeners();
+    }
+  }
+
+  // --- HOST LOGICA ---
 
   Future<void> startHost(int port) async {
     _mode = P2PMode.host;
-    final server = await HttpServer.bind(InternetAddress.anyIPv4, port);
+    _startBroadcasting(port);
     
+    final server = await HttpServer.bind(InternetAddress.anyIPv4, port);
     server.listen((HttpRequest request) async {
       if (WebSocketTransformer.isUpgradeRequest(request)) {
         final socket = await WebSocketTransformer.upgrade(request);
@@ -35,8 +88,13 @@ class P2PChessService with ChangeNotifier {
     notifyListeners();
   }
 
+  // --- JOIN LOGICA ---
+
   Future<void> joinGame(String hostIp, int port) async {
     _mode = P2PMode.join;
+    _discoverySocket?.close();
+    isSearching = false;
+
     try {
       final uri = Uri.parse('ws://$hostIp:$port');
       _channel = WebSocketChannel.connect(uri);
@@ -53,7 +111,11 @@ class P2PChessService with ChangeNotifier {
     }
   }
 
-  void _handleConnection(WebSocketChannel socket, String color) {
+  void autoDiscover() {
+    _startListening();
+  }
+
+  void _handleConnection(dynamic socket, String color) {
     _channel = socket;
     isConnected = true;
     
@@ -69,9 +131,9 @@ class P2PChessService with ChangeNotifier {
     final data = jsonDecode(message as String);
     
     if (data['type'] == 'move') {
-      final move = chess_lib.Move.fromAlgebraic(data['move']);
-      if (game.makeMove(move)) {
-        _gameStream.add({'type': 'update', 'fen': game.fen, 'lastMove': data['move']});
+      final moveStr = data['move'];
+      if (game.move(moveStr)) {
+        _gameStream.add({'type': 'update', 'fen': game.fen, 'lastMove': moveStr});
       }
     } else if (data['type'] == 'init') {
       playerColor = data['color'];
@@ -87,8 +149,7 @@ class P2PChessService with ChangeNotifier {
   }
 
   void makeMove(String algebraicMove) {
-    final move = chess_lib.Move.fromAlgebraic(algebraicMove);
-    if (game.makeMove(move)) {
+    if (game.move(algebraicMove)) {
       sendMove({'type': 'move', 'move': algebraicMove});
       _gameStream.add({'type': 'update', 'fen': game.fen, 'lastMove': algebraicMove});
       notifyListeners();
@@ -98,6 +159,7 @@ class P2PChessService with ChangeNotifier {
   @override
   void dispose() {
     _channel?.sink.close();
+    _discoverySocket?.close();
     _gameStream.close();
     super.dispose();
   }
