@@ -25,8 +25,8 @@ class P2PChessService with ChangeNotifier {
   void _startBroadcasting(int port) async {
     try {
       _discoverySocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 8081);
-      _discoverySocket!.broadcastsEnabled = true;
-      
+      _discoverySocket!.setOption(SocketOption.broadcast, true);
+    
       Timer.periodic(const Duration(seconds: 2), (timer) {
         if (_mode != P2PMode.host) {
           timer.cancel();
