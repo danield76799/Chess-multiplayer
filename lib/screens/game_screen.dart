@@ -31,9 +31,11 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final service = Provider.of<P2PChessService>(context);
+    final String colorLabel = service.playerColor == 'w' ? 'Wit' : 'Zwart';
+    final String statusLabel = service.isConnected ? 'Verbonden' : 'Verbinding maken...';
 
     return Scaffold(
-      appBar: AppBar(title: Text('Kleur: ${service.playerColor == 'w' ? 'Wit' : 'Zwart}')),
+      appBar: AppBar(title: Text('Kleur: $colorLabel')),
       body: SingleChildScrollView(
         child: Center(
           child: Column(
@@ -48,7 +50,7 @@ class _GameScreenState extends State<GameScreen> {
                 },
               ),
               const SizedBox(height: 20),
-              Text('Status: ${service.isConnected ? 'Verbonden' : 'Verbinding maken...}'),
+              Text('Status: $statusLabel'),
               const SizedBox(height: 40),
             ],
           ),
