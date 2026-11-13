@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Release-builds hebben de internetpermissie niet standaard (die zit
+         alleen in de debug-manifest). Zonder deze kan de app geen WebSocket-
+         server starten en geen verbinding maken: "errno 1 / Operation not
+         permitted". CHANGE_WIFI_MULTICAST_STATE is nodig om UDP-broadcasts
+         (host discovery) op Wi-Fi te ontvangen. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
     <application
         android:label="chess_multiplayer"
         android:name="${applicationName}"
