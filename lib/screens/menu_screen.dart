@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/p2p_chess_service.dart';
+import '../theme.dart';
 import 'game_screen.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -63,7 +64,9 @@ class _MenuScreenState extends State<MenuScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Met een vriend')),
-      body: SingleChildScrollView(
+      body: Container(
+        decoration: ChessTheme.backgroundDecoration,
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -198,6 +201,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
             ],
           ],
+        ),
         ),
       ),
     );

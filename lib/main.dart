@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/p2p_chess_service.dart';
 import 'screens/home_screen.dart';
+import 'theme.dart';
 
 void main() {
   runApp(
@@ -19,7 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'P2P Chess',
-      theme: ThemeData.dark(useMaterial3: true),
+      theme: ChessTheme.theme(),
       home: const HomeScreen(),
     );
   }

@@ -24,8 +24,8 @@ void main() {
     expect(find.text('Tegen de computer'), findsOneWidget);
     expect(find.text('Met een vriend'), findsOneWidget);
 
-    // Via "Met een vriend" kom je op het multiplayer-scherm.
-    await tester.tap(find.text('Met een vriend'));
+    // Via de lobby-knop kom je op het multiplayer-scherm.
+    await tester.tap(find.text('Naar de lobby'));
     await tester.pumpAndSettle();
     expect(find.text('Nieuw spel host'), findsOneWidget);
     expect(find.text('Zoeken'), findsOneWidget);

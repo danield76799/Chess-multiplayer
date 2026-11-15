@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import '../services/chess_ai.dart';
+import '../theme.dart';
+import '../widgets/board_frame.dart';
 
 /// Schaken tegen de ingebouwde computer, volledig offline.
 ///
@@ -159,69 +161,53 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: LayoutBuilder(
+      body: Container(
+        decoration: ChessTheme.backgroundDecoration,
+        child: SafeArea(
+          child: LayoutBuilder(
           builder: (context, constraints) {
             final boardSize = (constraints.maxWidth < constraints.maxHeight
-                    ? constraints.maxWidth - 24
-                    : constraints.maxHeight - 140)
-                .clamp(200.0, 560.0);
+                    ? constraints.maxWidth - 36
+                    : constraints.maxHeight - 170)
+                .clamp(200.0, 540.0);
             return SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Row(
-                          children: [
-                            Icon(
-                              gameOver != null
-                                  ? Icons.emoji_events
-                                  : (_aiThinking
-                                      ? Icons.smart_toy
-                                      : Icons.person),
-                              size: 20,
-                              color: gameOver != null
-                                  ? Colors.amber
-                                  : (_aiThinking
-                                      ? Colors.white54
-                                      : Colors.greenAccent),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                gameOver ??
-                                    (_aiThinking
-                                        ? 'Computer denkt na…'
-                                        : 'Jouw zet'),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            if (_game.in_check && gameOver == null)
-                              const Text(
+                    Center(
+                      child: StatusPill(
+                        icon: gameOver != null
+                            ? Icons.emoji_events
+                            : (_aiThinking ? Icons.smart_toy : Icons.person),
+                        iconColor: gameOver != null
+                            ? ChessTheme.gold
+                            : (_aiThinking
+                                ? ChessTheme.textDim
+                                : ChessTheme.green),
+                        text: gameOver ??
+                            (_aiThinking ? 'Computer denkt na…' : 'Jouw zet'),
+                        trailing: (_game.in_check && gameOver == null)
+                            ? const Text(
                                 'Schaak!',
                                 style: TextStyle(
-                                  color: Colors.redAccent,
+                                  color: ChessTheme.red,
                                   fontWeight: FontWeight.bold,
                                 ),
-                              ),
-                          ],
-                        ),
+                              )
+                            : null,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    ChessBoard(
-                      controller: _controller,
-                      size: boardSize,
-                      boardOrientation: orientation,
-                      enableUserMoves: myTurn && gameOver == null,
-                      onMove: _onUserMove,
+                    const SizedBox(height: 12),
+                    BoardFrame(
+                      child: ChessBoard(
+                        controller: _controller,
+                        size: boardSize,
+                        boardOrientation: orientation,
+                        boardColor: BoardColor.green,
+                        enableUserMoves: myTurn && gameOver == null,
+                        onMove: _onUserMove,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     if (gameOver != null)
@@ -236,6 +222,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
             );
           },
         ),
+      ),
       ),
     );
   }

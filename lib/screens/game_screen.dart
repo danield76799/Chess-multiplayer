@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:provider/provider.dart';
 import '../services/p2p_chess_service.dart';
+import '../theme.dart';
+import '../widgets/board_frame.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -62,8 +64,11 @@ class _GameScreenState extends State<GameScreen> {
             ),
         ],
       ),
-      body: SafeArea(
-        child: _buildBody(service),
+      body: Container(
+        decoration: ChessTheme.backgroundDecoration,
+        child: SafeArea(
+          child: _buildBody(service),
+        ),
       ),
     );
   }
@@ -94,65 +99,49 @@ class _GameScreenState extends State<GameScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final boardSize = (constraints.maxWidth < constraints.maxHeight
-                ? constraints.maxWidth - 24
-                : constraints.maxHeight - 140)
-            .clamp(200.0, 560.0);
+                ? constraints.maxWidth - 36
+                : constraints.maxHeight - 170)
+            .clamp(200.0, 540.0);
         return SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
               children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Row(
-                      children: [
-                        Icon(
-                          gameOver != null
-                              ? Icons.emoji_events
-                              : (myTurn ? Icons.play_circle_fill : Icons.hourglass_empty),
-                          size: 20,
-                          color: gameOver != null
-                              ? Colors.amber
-                              : (myTurn ? Colors.greenAccent : Colors.white54),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            gameOver ??
-                                (myTurn
-                                    ? 'Jouw zet'
-                                    : 'Tegenstander is aan zet…'),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        if (service.gameStatus == 'check')
-                          const Text(
+                Center(
+                  child: StatusPill(
+                    icon: gameOver != null
+                        ? Icons.emoji_events
+                        : (myTurn ? Icons.play_circle_fill : Icons.hourglass_empty),
+                    iconColor: gameOver != null
+                        ? ChessTheme.gold
+                        : (myTurn ? ChessTheme.green : ChessTheme.textDim),
+                    text: gameOver ??
+                        (myTurn ? 'Jouw zet' : 'Tegenstander is aan zet…'),
+                    trailing: service.gameStatus == 'check'
+                        ? const Text(
                             'Schaak!',
                             style: TextStyle(
-                              color: Colors.redAccent,
+                              color: ChessTheme.red,
                               fontWeight: FontWeight.bold,
                             ),
-                          ),
-                      ],
-                    ),
+                          )
+                        : null,
                   ),
                 ),
-                const SizedBox(height: 8),
-                ChessBoard(
-                  controller: controller,
-                  size: boardSize,
-                  boardOrientation: orientation,
-                  enableUserMoves: myTurn && gameOver == null,
-                  onMove: () {
-                    // De board heeft de zet al op controller.game toegepast;
-                    // stuur de nieuwe stelling naar de tegenstander.
-                    service.syncLocalMove(controller.game.fen);
-                  },
+                const SizedBox(height: 12),
+                BoardFrame(
+                  child: ChessBoard(
+                    controller: controller,
+                    size: boardSize,
+                    boardOrientation: orientation,
+                    boardColor: BoardColor.green,
+                    enableUserMoves: myTurn && gameOver == null,
+                    onMove: () {
+                      // De board heeft de zet al op controller.game toegepast;
+                      // stuur de nieuwe stelling naar de tegenstander.
+                      service.syncLocalMove(controller.game.fen);
+                    },
+                  ),
                 ),
                 const SizedBox(height: 16),
                 if (gameOver != null)
