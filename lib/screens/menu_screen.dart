@@ -62,7 +62,7 @@ class _MenuScreenState extends State<MenuScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('P2P Chess')),
+      appBar: AppBar(title: const Text('Met een vriend')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

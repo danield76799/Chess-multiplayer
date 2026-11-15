@@ -1,6 +1,7 @@
 // Basis-tests voor de P2P-schaakapp:
 // 1. De menu-widget rendert zonder netwerk/verbinding.
 // 2. De spelregels/turn-logica in de service werkt los van het netwerk.
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
@@ -8,7 +9,11 @@ import 'package:chess_multiplayer/main.dart';
 import 'package:chess_multiplayer/services/p2p_chess_service.dart';
 
 void main() {
-  testWidgets('Menu toont host- en zoekopties', (WidgetTester tester) async {
+  testWidgets('Opstartscherm toont de twee spelmodi', (tester) async {
+    // Labels passen niet in de standaard testviewport; vergroot hem.
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       ChangeNotifierProvider(
         create: (_) => P2PChessService(),
@@ -16,6 +21,12 @@ void main() {
       ),
     );
     expect(find.text('P2P Chess'), findsOneWidget);
+    expect(find.text('Tegen de computer'), findsOneWidget);
+    expect(find.text('Met een vriend'), findsOneWidget);
+
+    // Via "Met een vriend" kom je op het multiplayer-scherm.
+    await tester.tap(find.text('Met een vriend'));
+    await tester.pumpAndSettle();
     expect(find.text('Nieuw spel host'), findsOneWidget);
     expect(find.text('Zoeken'), findsOneWidget);
     expect(find.text('Verbinden met host'), findsOneWidget);

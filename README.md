@@ -1,9 +1,20 @@
 # P2P Chess
 
-Samen schaken over een lokaal netwerk (LAN / zelfde Wi-Fi). Geen account, geen
-server, geen internet nodig — één toestel host het spel, de ander verbindt ermee.
+Twee manieren om te schaken: **tegen de computer** (offline, met een keuze uit
+makkelijk / gemiddeld / pittig) of **samen via een lokaal netwerk** (LAN /
+zelfde Wi-Fi, geen account, geen server).
 
-## Hoe speel je?
+## Speelmodi
+
+Bij het opstarten kies je:
+
+- **Tegen de computer** — je speelt direct, offline. Kies het niveau
+  (makkelijk = ondiepe zoekdiepte, gemiddeld = diepte 2, pittig = diepte 3
+  met alpha-beta-snoeiing en MVV-LVA-zetordening) en of je wit of zwart
+  speelt. Wit begint.
+- **Met een vriend** — zie hieronder.
+
+## Hoe speel je (multiplayer)?
 
 1. Beide toestellen in hetzelfde Wi-Fi-netwerk.
 2. **Speler 1** tikt op **“Nieuw spel host”**. De host staat te wachten en
@@ -33,6 +44,7 @@ spelers tegelijk.
 
 ## Beperkingen
 
+- Computer tegenstander is een simpele minimax-engine, geen sterke engine.
 - Geen internet-matchmaking; alleen lokaal netwerk.
 - Geen herverbinding: als de verbinding wegvalt, is het potje voorbij
   (het scherm toont "verbinding verbroken").
