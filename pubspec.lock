@@ -98,7 +98,7 @@ packages:
     source: hosted
     version: "0.7.0"
   chess_vectors_flutter:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: chess_vectors_flutter
       sha256: "5d9d013d2f1340bde1fda15d915262a420f75ff7f1e219860cb364073e5a3456"

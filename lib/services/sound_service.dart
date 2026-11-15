@@ -16,14 +16,17 @@ class SoundService {
   /// Globale aan/uit-knop (volume-icoon in de speel-schermen en op het menu).
   final ValueNotifier<bool> enabled = ValueNotifier<bool>(true);
 
+  // audioplayers prefixed AssetSource-paden zelf met 'assets/'; de bundle-sleutel
+  // is 'assets/sounds/x.wav', dus hier alleen 'sounds/x.wav' geven, anders wordt
+  // het 'assets/assets/sounds/x.wav' en faalt het laden stil.
   static const Map<ChessSound, String> _files = {
-    ChessSound.move: 'assets/sounds/move.wav',
-    ChessSound.capture: 'assets/sounds/capture.wav',
-    ChessSound.check: 'assets/sounds/check.wav',
-    ChessSound.start: 'assets/sounds/start.wav',
-    ChessSound.win: 'assets/sounds/win.wav',
-    ChessSound.draw: 'assets/sounds/draw.wav',
-    ChessSound.lose: 'assets/sounds/lose.wav',
+    ChessSound.move: 'sounds/move.wav',
+    ChessSound.capture: 'sounds/capture.wav',
+    ChessSound.check: 'sounds/check.wav',
+    ChessSound.start: 'sounds/start.wav',
+    ChessSound.win: 'sounds/win.wav',
+    ChessSound.draw: 'sounds/draw.wav',
+    ChessSound.lose: 'sounds/lose.wav',
   };
 
   Future<void> play(ChessSound sound) async {

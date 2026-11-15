@@ -9,6 +9,7 @@ import '../services/p2p_chess_service.dart';
 import '../services/sound_service.dart';
 import '../theme.dart';
 import '../widgets/board_frame.dart';
+import '../widgets/captured_pieces.dart';
 import '../widgets/sound_toggle.dart';
 
 class GameScreen extends StatefulWidget {
@@ -145,7 +146,7 @@ class _GameScreenState extends State<GameScreen> {
       builder: (context, constraints) {
         final boardSize = (constraints.maxWidth < constraints.maxHeight
                 ? constraints.maxWidth - 16
-                : constraints.maxHeight - 148)
+                : constraints.maxHeight - 190)
             .clamp(200.0, 900.0);
         return SingleChildScrollView(
           child: Padding(
@@ -188,6 +189,7 @@ class _GameScreenState extends State<GameScreen> {
                     },
                   ),
                 ),
+                CapturedPiecesBar(game: service.game),
                 const SizedBox(height: 16),
                 if (gameOver != null)
                   FilledButton.icon(

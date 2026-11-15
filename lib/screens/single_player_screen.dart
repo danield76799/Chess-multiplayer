@@ -9,6 +9,7 @@ import '../services/chess_ai.dart';
 import '../services/sound_service.dart';
 import '../theme.dart';
 import '../widgets/board_frame.dart';
+import '../widgets/captured_pieces.dart';
 import '../widgets/sound_toggle.dart';
 
 /// Schaken tegen de ingebouwde computer, volledig offline.
@@ -210,7 +211,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
           builder: (context, constraints) {
             final boardSize = (constraints.maxWidth < constraints.maxHeight
                     ? constraints.maxWidth - 16
-                    : constraints.maxHeight - 148)
+                    : constraints.maxHeight - 190)
                 .clamp(200.0, 900.0);
             return SingleChildScrollView(
               child: Padding(
@@ -251,6 +252,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
                         onMove: _onUserMove,
                       ),
                     ),
+                    CapturedPiecesBar(game: _game),
                     const SizedBox(height: 16),
                     if (gameOver != null)
                       FilledButton.icon(
