@@ -167,12 +167,12 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
           child: LayoutBuilder(
           builder: (context, constraints) {
             final boardSize = (constraints.maxWidth < constraints.maxHeight
-                    ? constraints.maxWidth - 36
-                    : constraints.maxHeight - 170)
-                .clamp(200.0, 540.0);
+                    ? constraints.maxWidth - 16
+                    : constraints.maxHeight - 148)
+                .clamp(200.0, 900.0);
             return SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
                 child: Column(
                   children: [
                     Center(
@@ -198,7 +198,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
                             : null,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     BoardFrame(
                       child: ChessBoard(
                         controller: _controller,
