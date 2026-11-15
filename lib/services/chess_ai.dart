@@ -165,6 +165,15 @@ class ChessAI {
     return best;
   }
 
+  /// Aantal stukken op het bord; daalt met 1 bij een slagzet.
+  static int pieceCount(chess_lib.Chess game) {
+    var count = 0;
+    for (final piece in game.board) {
+      if (piece != null) count++;
+    }
+    return count;
+  }
+
   /// Kies de beste zet voor de kant die aan de beurt is.
   /// Geeft null terug als er geen zetten zijn (mat/pat).
   static chess_lib.Move? pickMove(

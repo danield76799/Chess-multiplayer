@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/chess_ai.dart';
 import '../theme.dart';
+import '../widgets/sound_toggle.dart';
 import 'menu_screen.dart';
 import 'single_player_screen.dart';
 
@@ -34,7 +35,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SizedBox(height: 8),
+                      const Align(
+                        alignment: Alignment.topRight,
+                        child: SoundToggle(),
+                      ),
+                      const SizedBox(height: 4),
                       const _HeroHeader(),
                       const SizedBox(height: 28),
                       _SinglePlayerCard(

@@ -2,9 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:provider/provider.dart';
+import 'package:chess/chess.dart' as chess_lib;
+import 'package:wakelock_plus/wakelock_plus.dart';
+import '../services/chess_ai.dart';
 import '../services/p2p_chess_service.dart';
+import '../services/sound_service.dart';
 import '../theme.dart';
 import '../widgets/board_frame.dart';
+import '../widgets/sound_toggle.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -17,29 +22,68 @@ class _GameScreenState extends State<GameScreen> {
   final ChessBoardController controller = ChessBoardController();
   late final P2PChessService _service;
   StreamSubscription<Map<String, dynamic>>? _subscription;
+  int _pieceCount = 32;
+  String? _lastSoundFen;
 
   @override
   void initState() {
     super.initState();
+    // Houd het scherm aan tijdens het spelen.
+    try {
+      WakelockPlus.enable();
+    } catch (_) {}
     // Het bord volgt de service via een FEN-synchronisatie. Een load() op
     // een identieke FEN is onschadelijk, dus dubbele updates zijn oké.
     _service = context.read<P2PChessService>();
     _subscription = _service.gameStream.listen((data) {
       if (!mounted) return;
+      if (data['type'] == 'connected' || data['type'] == 'started') {
+        SoundService.instance.play(ChessSound.start);
+        return;
+      }
       if (data['type'] == 'update' && data['fen'] is String) {
         final fen = data['fen'] as String;
-        if (controller.game.fen != fen) {
-          controller.loadFen(fen);
-        } else {
-          controller.loadFen(fen); // zelfde stelling: board toch verversen
-        }
+        controller.loadFen(fen);
+        _announceMove(fen);
       }
     });
   }
 
+  /// Speelt het bijbehorende geluid voor een zet (eigen of van de tegen-
+  /// stander) en houdt de stukntelling bij voor de slag-detectie.
+  void _announceMove(String fen) {
+    if (_lastSoundFen == fen) return; // eigen/dubbele update overslaan
+    _lastSoundFen = fen;
+    final game = _service.game;
+    final isStart = fen == P2PChessService.initialFen;
+    if (isStart) {
+      _pieceCount = 32;
+      SoundService.instance.play(ChessSound.start);
+      return;
+    }
+    final after = ChessAI.pieceCount(game);
+    final wasCapture = after < _pieceCount;
+    _pieceCount = after;
+    bool? playerWon;
+    if (game.in_checkmate && _service.playerColor != null) {
+      final loserIsWhite = game.turn == chess_lib.Chess.WHITE;
+      playerWon = loserIsWhite != (_service.playerColor == 'w');
+    }
+    SoundService.instance.playMoveOutcome(
+      wasCapture: wasCapture,
+      inCheck: game.in_check,
+      gameOver: game.game_over,
+      playerWon: playerWon,
+    );
+  }
+
+
   @override
   void dispose() {
     _subscription?.cancel();
+    try {
+      WakelockPlus.disable();
+    } catch (_) {}
     // Verlaat het spel bij het sluiten van het scherm; de tegenstander
     // krijgt dan "verbinding verbroken" te zien.
     unawaited(_service.leaveGame());
@@ -56,6 +100,7 @@ class _GameScreenState extends State<GameScreen> {
       appBar: AppBar(
         title: Text('Jij: $colorLabel'),
         actions: [
+          const SoundToggle(),
           if (service.connectionState == ChessConnectionState.connected)
             IconButton(
               tooltip: 'Opnieuw beginnen',

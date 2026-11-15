@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:chess/chess.dart' as chess_lib;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../services/chess_ai.dart';
+import '../services/sound_service.dart';
 import '../theme.dart';
 import '../widgets/board_frame.dart';
+import '../widgets/sound_toggle.dart';
 
 /// Schaken tegen de ingebouwde computer, volledig offline.
 ///
@@ -32,6 +35,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
   late final ChessBoardController _controller;
   bool _aiThinking = false;
   Timer? _aiTimer;
+  int _lastPieceCount = 32;
 
   bool get _aiPlaysWhite => !widget.playerIsWhite;
 
@@ -40,6 +44,15 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
     super.initState();
     _game = chess_lib.Chess();
     _controller = ChessBoardController.fromGame(_game);
+    _lastPieceCount = ChessAI.pieceCount(_game);
+    // Houd het scherm wakker tijdens het spelen (anders vergrendelt het
+    // toestel tijdens het denken).
+    try {
+      WakelockPlus.enable();
+    } catch (_) {}
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => SoundService.instance.play(ChessSound.start),
+    );
     // Speelt de computer wit, dan zet hij als eerste.
     if (_aiPlaysWhite) {
       _scheduleAiMove(delay: const Duration(milliseconds: 600));
@@ -49,6 +62,9 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
   @override
   void dispose() {
     _aiTimer?.cancel();
+    try {
+      WakelockPlus.disable();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -80,6 +96,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
     }
     final move = ChessAI.pickMove(_game, difficulty: widget.difficulty);
     if (move != null) {
+      final before = ChessAI.pieceCount(_game);
       if (move.promotion != null) {
         _controller.makeMoveWithPromotion(
           from: move.fromAlgebraic,
@@ -89,11 +106,32 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
       } else {
         _controller.makeMove(from: move.fromAlgebraic, to: move.toAlgebraic);
       }
+      _announceOutcome(wasCapture: ChessAI.pieceCount(_game) < before);
     }
     if (mounted) setState(() => _aiThinking = false);
   }
 
+  /// Speelt het bijbehorende geluid (slag/schaak/mat/pat) en onthoudt
+  /// het aantal stukken voor de volgende detectie.
+  void _announceOutcome({required bool wasCapture}) {
+    final over = _game.game_over;
+    bool? playerWon;
+    if (_game.in_checkmate) {
+      final loserIsWhite = _game.turn == chess_lib.Chess.WHITE;
+      playerWon = loserIsWhite != widget.playerIsWhite;
+    }
+    SoundService.instance.playMoveOutcome(
+      wasCapture: wasCapture,
+      inCheck: _game.in_check,
+      gameOver: over,
+      playerWon: playerWon,
+    );
+    _lastPieceCount = ChessAI.pieceCount(_game);
+  }
+
   void _onUserMove() {
+    final wasCapture = ChessAI.pieceCount(_game) < _lastPieceCount;
+    _announceOutcome(wasCapture: wasCapture);
     setState(() {});
     if (_game.game_over) return;
     _scheduleAiMove();
@@ -109,14 +147,17 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
       while (!_isPlayerTurn && _game.half_moves > 0 && guard++ < 2) {
         _controller.undoMove();
       }
+      _lastPieceCount = ChessAI.pieceCount(_game);
     });
   }
 
   void _reset() {
     _aiTimer?.cancel();
+    SoundService.instance.play(ChessSound.start);
     setState(() {
       _controller.resetBoard();
       _aiThinking = false;
+      _lastPieceCount = 32;
     });
     _scheduleAiMove(delay: const Duration(milliseconds: 600));
   }
@@ -149,6 +190,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
       appBar: AppBar(
         title: Text('Tegen de computer · $_difficultyLabel'),
         actions: [
+          const SoundToggle(),
           IconButton(
             tooltip: 'Zet terugdraaien',
             icon: const Icon(Icons.undo),
