@@ -54,11 +54,14 @@ class P2PChessService with ChangeNotifier {
       connectionState == ChessConnectionState.searching;
   bool get isSearching => connectionState == ChessConnectionState.searching;
   bool get isHost => _mode == P2PMode.host;
-  bool get isGameOver => game.game_over;
+  bool get isGameOver => game.game_over || flaggedLoser != null;
+
+  /// Kleur van de speler die op tijd verloor ('w' of 'b'), of null.
+  String? flaggedLoser;
 
   /// Mag de lokale speler nu een zet doen?
   bool get isMyTurn {
-    if (!isConnected || game.game_over) return false;
+    if (!isConnected || game.game_over || flaggedLoser != null) return false;
     final localIsWhite = playerColor == 'w';
     final boardTurnIsWhite = game.turn == chess_lib.Chess.WHITE;
     return localIsWhite == boardTurnIsWhite;
@@ -75,6 +78,11 @@ class P2PChessService with ChangeNotifier {
   /// Nederlandstalige eind/stand-tekst voor het scherm, of null als het
   /// spel nog loopt.
   String? get gameOverMessage {
+    if (flaggedLoser != null) {
+      return playerColor == flaggedLoser
+          ? '⏰ Je tijd is op — tegenstander wint.'
+          : '⏰ Tegenstander was te laat — jij wint!';
+    }
     if (game.in_checkmate) {
       // De kant aan zet is schaakmat en verliest dus.
       final loserIsWhite = game.turn == chess_lib.Chess.WHITE;
@@ -169,6 +177,7 @@ class P2PChessService with ChangeNotifier {
     _mode = P2PMode.host;
     playerColor = 'w';
     game = chess_lib.Chess();
+    flaggedLoser = null;
     connectionState = ChessConnectionState.connecting; // wacht op tegenstander
     errorMessage = null;
     notifyListeners();
@@ -236,6 +245,7 @@ class P2PChessService with ChangeNotifier {
     _mode = P2PMode.join;
     playerColor = 'b';
     game = chess_lib.Chess();
+    flaggedLoser = null;
     connectionState = ChessConnectionState.connecting;
     errorMessage = null;
     notifyListeners();
@@ -283,9 +293,22 @@ class P2PChessService with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Legt vast dat [loser] op tijd verloor en meldt dit aan de tegenstander.
+  /// Beide toestellen berekenen dezelfde uitkomst (de kant die aan zet was
+  /// toen de klok verliep); het bericht is een extra zekerheid.
+  void flagGame(String loser) {
+    if (flaggedLoser != null) return;
+    if (loser != 'w' && loser != 'b') return;
+    flaggedLoser = loser;
+    _send({'type': 'flag', 'loser': loser});
+    _gameStream.add({'type': 'flag', 'loser': loser});
+    notifyListeners();
+  }
+
   /// Zet het bord terug naar de beginstelling en meld dat aan de tegenstander.
   void resetGame() {
     game = chess_lib.Chess();
+    flaggedLoser = null;
     _send({'type': 'reset'});
     _gameStream.add({'type': 'update', 'fen': game.fen});
     notifyListeners();
@@ -311,8 +334,19 @@ class P2PChessService with ChangeNotifier {
         break;
       case 'reset':
         game = chess_lib.Chess();
+        flaggedLoser = null;
         _gameStream.add({'type': 'update', 'fen': game.fen});
         notifyListeners();
+        break;
+      case 'flag':
+        final loser = data['loser'];
+        if (loser == 'w' || loser == 'b') {
+          if (flaggedLoser == null) {
+            flaggedLoser = loser as String?;
+            _gameStream.add({'type': 'flag', 'loser': loser});
+            notifyListeners();
+          }
+        }
         break;
       case 'init':
         playerColor = data['color'] as String?;
@@ -356,6 +390,7 @@ class P2PChessService with ChangeNotifier {
     } catch (_) {}
     _server = null;
     game = chess_lib.Chess();
+    flaggedLoser = null;
     _mode = null;
     playerColor = null;
     discoveredHostIp = null;

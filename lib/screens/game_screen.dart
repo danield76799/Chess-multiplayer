@@ -9,6 +9,7 @@ import '../services/p2p_chess_service.dart';
 import '../services/sound_service.dart';
 import '../theme.dart';
 import '../widgets/board_frame.dart';
+import '../widgets/move_clock.dart';
 import '../widgets/captured_pieces.dart';
 import '../widgets/sound_toggle.dart';
 
@@ -19,12 +20,14 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   final ChessBoardController controller = ChessBoardController();
   late final P2PChessService _service;
   StreamSubscription<Map<String, dynamic>>? _subscription;
   int _pieceCount = 32;
   String? _lastSoundFen;
+  final MoveClock _clock = MoveClock();
+  Timer? _clockTicker;
 
   @override
   void initState() {
@@ -35,19 +38,54 @@ class _GameScreenState extends State<GameScreen> {
     } catch (_) {}
     // Het bord volgt de service via een FEN-synchronisatie. Een load() op
     // een identieke FEN is onschadelijk, dus dubbele updates zijn oké.
+    WidgetsBinding.instance.addObserver(this);
     _service = context.read<P2PChessService>();
     _subscription = _service.gameStream.listen((data) {
       if (!mounted) return;
       if (data['type'] == 'connected' || data['type'] == 'started') {
         SoundService.instance.play(ChessSound.start);
+        _clock.reset();
         return;
       }
       if (data['type'] == 'update' && data['fen'] is String) {
         final fen = data['fen'] as String;
         controller.loadFen(fen);
+        _clock.reset();
         _announceMove(fen);
       }
+      if (data['type'] == 'flag') {
+        final loser = data['loser'];
+        final amLoser = loser != null && loser == _service.playerColor;
+        SoundService.instance.play(amLoser ? ChessSound.lose : ChessSound.win);
+      }
     });
+    _startClockTicker();
+  }
+
+  void _startClockTicker() {
+    _clockTicker?.cancel();
+    _clockTicker = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      if (!mounted) return;
+      if (_service.gameOverMessage == null) {
+        setState(() {});
+        if (_clock.isExpired &&
+            _service.connectionState == ChessConnectionState.connected &&
+            _service.flaggedLoser == null) {
+          final loser =
+              _service.game.turn == chess_lib.Chess.WHITE ? 'w' : 'b';
+          _service.flagGame(loser);
+        }
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _clock.pause();
+    } else if (state == AppLifecycleState.resumed) {
+      _clock.resume();
+    }
   }
 
   /// Speelt het bijbehorende geluid voor een zet (eigen of van de tegen-
@@ -82,6 +120,8 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void dispose() {
     _subscription?.cancel();
+    _clockTicker?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     try {
       WakelockPlus.disable();
     } catch (_) {}
@@ -154,7 +194,10 @@ class _GameScreenState extends State<GameScreen> {
             child: Column(
               children: [
                 Center(
-                  child: StatusPill(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                    StatusPill(
                     icon: gameOver != null
                         ? Icons.emoji_events
                         : (myTurn ? Icons.play_circle_fill : Icons.hourglass_empty),
@@ -172,6 +215,13 @@ class _GameScreenState extends State<GameScreen> {
                             ),
                           )
                         : null,
+                  ),
+                  const SizedBox(width: 10),
+                  MoveClockPill(
+                    secondsLeft: _clock.secondsLeft,
+                    active: gameOver == null,
+                  ),
+                  ],
                   ),
                 ),
                 const SizedBox(height: 12),

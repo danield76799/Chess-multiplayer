@@ -8,6 +8,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../services/chess_ai.dart';
 import '../services/sound_service.dart';
 import '../theme.dart';
+import '../widgets/move_clock.dart';
 import '../widgets/board_frame.dart';
 import '../widgets/captured_pieces.dart';
 import '../widgets/sound_toggle.dart';
@@ -31,11 +32,16 @@ class SinglePlayerScreen extends StatefulWidget {
   State<SinglePlayerScreen> createState() => _SinglePlayerScreenState();
 }
 
-class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
+class _SinglePlayerScreenState extends State<SinglePlayerScreen>
+    with WidgetsBindingObserver {
   late final chess_lib.Chess _game;
   late final ChessBoardController _controller;
   bool _aiThinking = false;
   Timer? _aiTimer;
+  Timer? _clockTicker;
+  final MoveClock _clock = MoveClock();
+  bool _flagged = false;
+  bool _flagLoserIsPlayer = true;
   int _lastPieceCount = 32;
 
   bool get _aiPlaysWhite => !widget.playerIsWhite;
@@ -51,6 +57,8 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
     try {
       WakelockPlus.enable();
     } catch (_) {}
+    WidgetsBinding.instance.addObserver(this);
+    _startClockTicker();
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => SoundService.instance.play(ChessSound.start),
     );
@@ -63,10 +71,45 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
   @override
   void dispose() {
     _aiTimer?.cancel();
+    _clockTicker?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     try {
       WakelockPlus.disable();
     } catch (_) {}
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _clock.pause();
+    } else if (state == AppLifecycleState.resumed) {
+      _clock.resume();
+    }
+  }
+
+  void _startClockTicker() {
+    _clockTicker?.cancel();
+    _clockTicker = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      if (!mounted) return;
+      if (_gameOverMessage != null) return; // klok staat stil bij einde spel
+      setState(() {});
+      if (_clock.isExpired) _handleFlag();
+    });
+  }
+
+  void _handleFlag() {
+    if (_flagged || _game.game_over) return;
+    setState(() {
+      _flagged = true;
+      _flagLoserIsPlayer = _isPlayerTurn;
+    });
+    SoundService.instance.play(_flagLoserIsPlayer ? ChessSound.lose : ChessSound.win);
+  }
+
+  void _resetClock() {
+    _flagged = false;
+    _clock.reset();
   }
 
   bool get _isPlayerTurn {
@@ -108,6 +151,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
         _controller.makeMove(from: move.fromAlgebraic, to: move.toAlgebraic);
       }
       _announceOutcome(wasCapture: ChessAI.pieceCount(_game) < before);
+      _resetClock();
     }
     if (mounted) setState(() => _aiThinking = false);
   }
@@ -133,6 +177,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
   void _onUserMove() {
     final wasCapture = ChessAI.pieceCount(_game) < _lastPieceCount;
     _announceOutcome(wasCapture: wasCapture);
+    _resetClock();
     setState(() {});
     if (_game.game_over) return;
     _scheduleAiMove();
@@ -149,6 +194,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
         _controller.undoMove();
       }
       _lastPieceCount = ChessAI.pieceCount(_game);
+      _resetClock();
     });
   }
 
@@ -159,6 +205,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
       _controller.resetBoard();
       _aiThinking = false;
       _lastPieceCount = 32;
+      _resetClock();
     });
     _scheduleAiMove(delay: const Duration(milliseconds: 600));
   }
@@ -170,6 +217,11 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
       };
 
   String? get _gameOverMessage {
+    if (_flagged) {
+      return _flagLoserIsPlayer
+          ? '⏰ Je tijd is op — de computer wint.'
+          : '⏰ De computer was te laat — jij wint! 🎉';
+    }
     if (_game.in_checkmate) {
       final loserIsWhite = _game.turn == chess_lib.Chess.WHITE;
       final playerWon = (loserIsWhite == widget.playerIsWhite) == false;
@@ -219,7 +271,10 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
                 child: Column(
                   children: [
                     Center(
-                      child: StatusPill(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                        StatusPill(
                         icon: gameOver != null
                             ? Icons.emoji_events
                             : (_aiThinking ? Icons.smart_toy : Icons.person),
@@ -239,6 +294,13 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
                                 ),
                               )
                             : null,
+                      ),
+                      const SizedBox(width: 10),
+                        MoveClockPill(
+                          secondsLeft: _clock.secondsLeft,
+                          active: gameOver == null,
+                        ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
