@@ -1,10 +1,20 @@
-De code in dit pakket (de Dart-wrapper) is afgeleid van het MIT-gelicenseerde
-chess_vectors_flutter-pakket (c) 2018-2021 Laurent Bernabe.
+Deze fork combineert:
 
-De SVG-afbeeldingen in assets/reillycraig/ zijn ontworpen door Reilly Craig
-("reillycraig") en zijn afkomstig uit de open-source schaaksoftware
-lichess (lichess-org/lila, public/piece/reillycraig) en pychess
-(pychess/pieces/reillycraig). Er is geen aparte open licentie bijgeleverd;
-gebruik met naamsvermelding in overeenstemming met de verspreiding met
-opensource-schaaksoftware. Zie README.md voor details en met
-neem contact op met de auteur bij vragen of bezwaar.
+1. Dart-wrapper-code afgeleid van chess_vectors_flutter (c) 2018-2021
+   Laurent Bernabe — MIT-licentie (behouden):
+   "Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the \"Software\"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so."
+
+2. De schaakstuk-illustraties in assets/fantasy/ — "Fantasy chess pieces"
+   van Maurizio Monge, vrijgegeven onder de GNU Lesser General Public
+   License v2.1 of later (LGPL-2.1+), o.a. beschikbaar via Wikimedia Commons
+   (Category:SVG chess pieces/Maurizio Monge) en lichess.
+
+   Bron: https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces/Maurizio_Monge
+   De SVG's zijn onbewerkt overgenomen (alleen CSS-stijlen inline gezet
+   voor compatibiliteit met flutter_svg); de artwork blijft van de auteur.
+   Distributie met naamsvermelding, zoals hierboven en in README.md.

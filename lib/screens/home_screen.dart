@@ -63,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Schaakstukken: Reilly Craig',
+                        'Schaakstukken: Maurizio Monge (Fantasy)',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: ChessTheme.textDim,

@@ -1,6 +1,6 @@
 /// Minimale vervanger voor het originele chess_vectors_flutter-pakket.
 ///
-/// Rendert de "Reillycraig" schaakstukken (tekeningen van Reilly Craig,
+/// Rendert de "Fantasy" schaakstukken (tekeningen van Maurizio Monge,
 /// gebruikt in lichess/pychess) als SVG-assets in plaats van de ingebouwde
 /// paden. De publieke API (de 12 stuk-klassen) is compatibel met wat
 /// flutter_chess_board verwacht.
@@ -17,7 +17,7 @@ class _ReillyPiece extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SvgPicture.asset(
-        'assets/reillycraig/$asset',
+        'assets/fantasy/$asset',
         package: 'chess_vectors_flutter',
         width: size,
         height: size,
