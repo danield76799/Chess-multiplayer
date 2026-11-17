@@ -5,9 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   testWidgets('alle stukken renderen zonder fouten', (tester) async {
     final pieces = <Widget>[
-      WhitePawn(), BlackPawn(), WhiteRook(), BlackRook(),
-      WhiteKnight(), BlackKnight(), WhiteBishop(), BlackBishop(),
-      WhiteQueen(), BlackQueen(), WhiteKing(), BlackKing(),
+      const WhitePawn(), const BlackPawn(), const WhiteRook(), const BlackRook(),
+      const WhiteKnight(), const BlackKnight(), const WhiteBishop(), const BlackBishop(),
+      const WhiteQueen(), const BlackQueen(), const WhiteKing(), const BlackKing(),
     ];
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(

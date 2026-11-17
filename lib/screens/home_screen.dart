@@ -61,6 +61,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           letterSpacing: 0.4,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Schaakstukken: Reilly Craig',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: ChessTheme.textDim,
+                          fontSize: 10,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
                     ],
                   ),
                 ),

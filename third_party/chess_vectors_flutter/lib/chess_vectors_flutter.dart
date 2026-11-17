@@ -1,1005 +1,109 @@
-library chess_vectors_flutter;
+/// Minimale vervanger voor het originele chess_vectors_flutter-pakket.
+///
+/// Rendert de "Reillycraig" schaakstukken (tekeningen van Reilly Craig,
+/// gebruikt in lichess/pychess) als SVG-assets in plaats van de ingebouwde
+/// paden. De publieke API (de 12 stuk-klassen) is compatibel met wat
+/// flutter_chess_board verwacht.
+library;
 
-import 'package:chess_vectors_flutter/vector_image.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
+class _ReillyPiece extends StatelessWidget {
+  const _ReillyPiece(this.asset, {this.size = 45.0});
 
-/// Friendly "cute" face overlay: white eyes + pupils + a smile.
-/// Drawn after the body so it sits on top.
-List<VectorDrawableElement> cuteFace({
-  required double centerX,
-  required double eyeY,
-  required double eyeDX,
-  double eyeR = 1.25,
-  double pupilR = 0.62,
-  required double smileY,
-  double smileHalfWidth = 1.9,
-  required Color lineColor,
-  required Color eyeColor,
-  Color? pupilColor,
-}) {
-  final eyeL = centerX - eyeDX;
-  final eyeRr = centerX + eyeDX;
-  final noStroke = const Color(0x00000000);
-  DrawingParameters solid(Color c) =>
-      DrawingParameters(fillColor: c, strokeColor: noStroke, strokeWidth: 0);
-  final sparkle = eyeColor.computeLuminance() < 0.5 ? const Color(0xFFFFFFFF) : const Color(0xFF26232E);
-  return <VectorDrawableElement>[
-    VectorCircle(position: Offset(eyeL, eyeY), radius: eyeR,
-        drawingParameters: solid(eyeColor)),
-    VectorCircle(position: Offset(eyeRr, eyeY), radius: eyeR,
-        drawingParameters: solid(eyeColor)),
-    if (pupilColor != null) ...[
-      VectorCircle(position: Offset(eyeL, eyeY + 0.15), radius: pupilR,
-          drawingParameters: solid(pupilColor)),
-      VectorCircle(position: Offset(eyeRr, eyeY + 0.15), radius: pupilR,
-          drawingParameters: solid(pupilColor)),
-    ],
-    VectorCircle(position: Offset(eyeL - 0.35, eyeY - 0.35), radius: 0.32,
-        drawingParameters: solid(sparkle)),
-    VectorCircle(position: Offset(eyeRr - 0.35, eyeY - 0.35), radius: 0.32,
-        drawingParameters: solid(sparkle)),
-    VectorImagePathDefinition(
-      path:
-          'M ${centerX - smileHalfWidth} $smileY C ${centerX - smileHalfWidth + smileHalfWidth * 0.667} ${smileY + 1.13} ${centerX + smileHalfWidth - smileHalfWidth * 0.667} ${smileY + 1.13} ${centerX + smileHalfWidth} $smileY',
-      drawingParameters: DrawingParameters(
-        fillColor: null,
-        strokeColor: lineColor,
-        strokeWidth: 1.15,
-        strokeLineCap: StrokeCap.round,
-      ),
-    ),
-  ];
+  final String asset;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => SvgPicture.asset(
+        'assets/reillycraig/$asset',
+        package: 'chess_vectors_flutter',
+        width: size,
+        height: size,
+      );
 }
 
-/// White pawn vector
-class WhitePawn extends VectorBase {
-  final fillColor;
-  final strokeColor;
-
-  /// size (double) : default to 45.0
-  WhitePawn({
-    double size = 45.0,
-    this.fillColor = Colors.white,
-    this.strokeColor = Colors.black,
-  }) : super(
-          baseImageSize: 45.0,
-          requestSize: size,
-          painter: VectorImagePainter(
-            vectorDefinition: <VectorDrawableElement>[
-              VectorImagePathDefinition(
-                path:
-                    "M 22,9 C 19.79,9 18,10.79 18,13 C 18,13.89 18.29,14.71 18.78,15.38"
-                    " C 16.83,16.5 15.5,18.59 15.5,21 C 15.5,23.03 16.44,24.84 17.91,26.03"
-                    " C 14.91,27.09 10.5,31.58 10.5,39.5 L 33.5,39.5 C 33.5,31.58 29.09,"
-                    "27.09 26.09,26.03 C 27.56,24.84 28.5,23.03 28.5,21 C 28.5,18.59"
-                    " 27.17,16.5 25.22,15.38 C 25.71,14.71 26,13.89 26,13 C 26,10.79"
-                    " 24.21,9 22,9 z ",
-                drawingParameters: DrawingParameters(
-                  fillColor: fillColor,
-                  strokeColor: strokeColor,
-                  strokeWidth: 1.5,
-                  strokeLineCap: StrokeCap.round,
-                  strokeLineJoin: StrokeJoin.miter,
-                  strokeLineMiterLimit: 4.0,
-                ),
-              ),
-            
-              ...cuteFace(centerX: 22.5, eyeY: 12.4, eyeDX: 1.95, eyeR: 1.15, pupilR: 0.58, smileY: 15.4, smileHalfWidth: 1.6, lineColor: const Color(0xFF26232E), eyeColor: const Color(0xFF26232E)),
-            ],
-          ),
-        );
+class WhitePawn extends StatelessWidget {
+  const WhitePawn({super.key, double size = 45.0}) : _size = size;
+  final double _size;
+  @override
+  Widget build(BuildContext context) => _ReillyPiece('wP.svg', size: _size);
 }
 
-/// Black pawn vector
-class BlackPawn extends VectorBase {
-  final fillColor;
-  final strokeColor;
-
-  /// size (double) : default to 45.0
-  BlackPawn({
-    double size = 45.0,
-    this.fillColor = Colors.black,
-    this.strokeColor = Colors.black,
-  }) : super(
-          baseImageSize: 45.0,
-          requestSize: size,
-          painter: VectorImagePainter(
-            vectorDefinition: <VectorDrawableElement>[
-              VectorImagePathDefinition(
-                path:
-                    "M 22,9 C 19.79,9 18,10.79 18,13 C 18,13.89 18.29,14.71 18.78,15.38"
-                    " C 16.83,16.5 15.5,18.59 15.5,21 C 15.5,23.03 16.44,24.84 17.91,26.03"
-                    " C 14.91,27.09 10.5,31.58 10.5,39.5 L 33.5,39.5 C 33.5,31.58 29.09,"
-                    "27.09 26.09,26.03 C 27.56,24.84 28.5,23.03 28.5,21 C 28.5,18.59"
-                    " 27.17,16.5 25.22,15.38 C 25.71,14.71 26,13.89 26,13 C 26,10.79"
-                    " 24.21,9 22,9 z ",
-                drawingParameters: DrawingParameters(
-                  fillColor: fillColor,
-                  strokeColor: strokeColor,
-                  strokeWidth: 1.5,
-                  strokeLineCap: StrokeCap.round,
-                  strokeLineJoin: StrokeJoin.miter,
-                  strokeLineMiterLimit: 4.0,
-                ),
-              ),
-            
-              ...cuteFace(centerX: 22.5, eyeY: 12.4, eyeDX: 1.95, eyeR: 1.15, pupilR: 0.58, smileY: 15.4, smileHalfWidth: 1.6, lineColor: const Color(0xFFFFFFFF), eyeColor: const Color(0xFFFFFFFF), pupilColor: const Color(0xFF26232E)),
-            ],
-          ),
-        );
+class WhiteRook extends StatelessWidget {
+  const WhiteRook({super.key, double size = 45.0}) : _size = size;
+  final double _size;
+  @override
+  Widget build(BuildContext context) => _ReillyPiece('wR.svg', size: _size);
 }
 
-/// White Knight vector
-class WhiteKnight extends VectorBase {
-  final fillColor;
-  final strokeColor;
-
-  /// size (double) : default to 45.0
-  WhiteKnight({
-    double size = 45.0,
-    this.fillColor = Colors.white,
-    this.strokeColor = Colors.black,
-  }) : super(
-          baseImageSize: 45.0,
-          requestSize: size,
-          painter: VectorImagePainter(vectorDefinition: <VectorDrawableElement>[
-            VectorImageGroup(
-              children: <VectorDrawableElement>[
-                VectorImagePathDefinition(
-                  path: "M 22,10 C 32.5,11 38.5,18 38,39"
-                      " L 15,39 C 15,30 25,32.5 23,18",
-                  drawingParameters: DrawingParameters(fillColor: fillColor),
-                ),
-                VectorImagePathDefinition(
-                  path: "M 24,18 C 24.38,20.91 18.45,25.37"
-                      " 16,27 C 13,29 13.18,31.34 11,31 C "
-                      "9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30"
-                      " 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C"
-                      " 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L"
-                      " 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10",
-                  drawingParameters: DrawingParameters(fillColor: fillColor),
-                ),
-                VectorImagePathDefinition(
-                  path: "M 9.5 25.5 A 0.5 0.5 0 1 1"
-                      " 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z",
-                  drawingParameters: DrawingParameters(
-                    fillColor: strokeColor,
-                  ),
-                ),
-              ],
-              drawingParameters: DrawingParameters(
-                fillColor: null,
-                strokeColor: strokeColor,
-                strokeWidth: 1.5,
-                strokeLineCap: StrokeCap.round,
-                strokeLineJoin: StrokeJoin.round,
-                strokeLineMiterLimit: 4.0,
-              ),
-            ),
-          
-              ...cuteFace(centerX: 15.6, eyeY: 11.4, eyeDX: 2.15, eyeR: 1.15, pupilR: 0.58, smileY: 14.8, smileHalfWidth: 1.5, lineColor: const Color(0xFF26232E), eyeColor: const Color(0xFF26232E)),
-            ]),
-        );
+class WhiteKnight extends StatelessWidget {
+  const WhiteKnight({super.key, double size = 45.0}) : _size = size;
+  final double _size;
+  @override
+  Widget build(BuildContext context) => _ReillyPiece('wN.svg', size: _size);
 }
 
-/// Black knight vector
-class BlackKnight extends VectorBase {
-  final fillColor;
-  final strokeColor;
-  final decorationColor;
-
-  /// size (double) : default to 45.0
-  BlackKnight({
-    double size = 45.0,
-    this.fillColor = Colors.black,
-    this.strokeColor = Colors.black,
-    this.decorationColor = Colors.white,
-  }) : super(
-          baseImageSize: 45.0,
-          requestSize: size,
-          painter: VectorImagePainter(
-            vectorDefinition: <VectorDrawableElement>[
-              VectorImageGroup(
-                children: <VectorDrawableElement>[
-                  VectorImagePathDefinition(
-                    path: "M 22,10 C 32.5,11 38.5,18 38,39 L 15,39"
-                        " C 15,30 25,32.5 23,18",
-                    drawingParameters: DrawingParameters(
-                      fillColor: fillColor,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,"
-                        "31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,"
-                        "29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14"
-                        " 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,"
-                        "6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C "
-                        "22,7 22,10 22,10",
-                    drawingParameters: DrawingParameters(
-                      fillColor: fillColor,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z",
-                    drawingParameters: DrawingParameters(
-                      fillColor: decorationColor,
-                      strokeColor: decorationColor,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 24.55,10.4 L 24.1,11.85 L 24.6,12 C 27.75,13 30.25,14.49 "
-                        "32.5,18.75 C 34.75,23.01 35.75,29.06 35.25,39 L 35.2,39.5 L "
-                        "37.45,39.5 L 37.5,39 C 38,28.94 36.62,22.15 34.25,17.66 C "
-                        "31.88,13.17 28.46,11.02 25.06,10.5 L 24.55,10.4 z ",
-                    drawingParameters: DrawingParameters(
-                      fillColor: decorationColor,
-                      strokeColor: strokeColor,
-                      strokeWidth: 0.5,
-                    ),
-                  )
-                ],
-                drawingParameters: DrawingParameters(
-                  fillColor: null,
-                  strokeColor: strokeColor,
-                  strokeWidth: 1.5,
-                  strokeLineCap: StrokeCap.round,
-                  strokeLineJoin: StrokeJoin.round,
-                  strokeLineMiterLimit: 4.0,
-                ),
-              ),
-            
-              ...cuteFace(centerX: 15.6, eyeY: 11.4, eyeDX: 2.15, eyeR: 1.15, pupilR: 0.58, smileY: 14.8, smileHalfWidth: 1.5, lineColor: const Color(0xFFFFFFFF), eyeColor: const Color(0xFFFFFFFF), pupilColor: const Color(0xFF26232E)),
-            ],
-          ),
-        );
+class WhiteBishop extends StatelessWidget {
+  const WhiteBishop({super.key, double size = 45.0}) : _size = size;
+  final double _size;
+  @override
+  Widget build(BuildContext context) => _ReillyPiece('wB.svg', size: _size);
 }
 
-/// White Bishop vector
-class WhiteBishop extends VectorBase {
-  final fillColor;
-  final strokeColor;
-
-  /// size (double) : default to 45.0
-  WhiteBishop(
-      {double size = 45.0,
-      this.fillColor = Colors.white,
-      this.strokeColor = Colors.black})
-      : super(
-          baseImageSize: 45.0,
-          requestSize: size,
-          painter: VectorImagePainter(
-            vectorDefinition: <VectorDrawableElement>[
-              VectorImageGroup(
-                children: <VectorDrawableElement>[
-                  VectorImageGroup(
-                    children: <VectorDrawableElement>[
-                      VectorImagePathDefinition(
-                        path:
-                            "M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 "
-                            "32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 "
-                            "37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C "
-                            "19.11,38.96 12.39,37.53 9,38.5 C 7.646,38.99 6.677,38.97 6,38"
-                            " C 7.354,36.06 9,36 9,36 z",
-                        drawingParameters: DrawingParameters(),
-                      ),
-                      VectorImagePathDefinition(
-                        path:
-                            "M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30"
-                            " C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C"
-                            " 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30"
-                            " 14.5,30.5 15,32 z",
-                        drawingParameters: DrawingParameters(),
-                      ),
-                      VectorImagePathDefinition(
-                        path:
-                            "M 25 8 A 2.5 2.5 0 1 1  20,8 A 2.5 2.5 0 1 1  25 8 z",
-                        drawingParameters: DrawingParameters(),
-                      )
-                    ],
-                    drawingParameters: DrawingParameters(
-                      fillColor: fillColor,
-                      strokeColor: strokeColor,
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: strokeColor,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  )
-                ],
-                drawingParameters: DrawingParameters(
-                  fillColor: null,
-                  strokeColor: strokeColor,
-                  strokeWidth: 1.5,
-                  strokeLineCap: StrokeCap.round,
-                  strokeLineJoin: StrokeJoin.round,
-                  strokeLineMiterLimit: 4.0,
-                ),
-              ),
-            
-              ...cuteFace(centerX: 22.5, eyeY: 18.6, eyeDX: 3.0,  eyeR: 1.3,  pupilR: 0.65, smileY: 22.7, smileHalfWidth: 2.0, lineColor: const Color(0xFF26232E), eyeColor: const Color(0xFF26232E)),
-            ],
-          ),
-        );
+class WhiteQueen extends StatelessWidget {
+  const WhiteQueen({super.key, double size = 45.0}) : _size = size;
+  final double _size;
+  @override
+  Widget build(BuildContext context) => _ReillyPiece('wQ.svg', size: _size);
 }
 
-/// Black bishop vector
-class BlackBishop extends VectorBase {
-  final fillColor;
-  final strokeColor;
-  final decorationColor;
-
-  /// size (double) : default to 45.0
-  BlackBishop({
-    double size = 45.0,
-    this.fillColor = Colors.black,
-    this.strokeColor = Colors.black,
-    this.decorationColor = Colors.white,
-  }) : super(
-          baseImageSize: 45.0,
-          requestSize: size,
-          painter: VectorImagePainter(
-            vectorDefinition: <VectorDrawableElement>[
-              VectorImageGroup(
-                children: <VectorDrawableElement>[
-                  VectorImageGroup(
-                    children: <VectorDrawableElement>[
-                      VectorImagePathDefinition(
-                        path:
-                            "M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,"
-                            "35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,"
-                            "38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,"
-                            "38.5 C 7.646,38.99 6.677,38.97 6,38 C 7.354,36.06 9,36 9,36 z",
-                        drawingParameters: DrawingParameters(),
-                      ),
-                      VectorImagePathDefinition(
-                        path:
-                            "M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,"
-                            "27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,"
-                            "24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z",
-                        drawingParameters: DrawingParameters(),
-                      ),
-                      VectorImagePathDefinition(
-                        path:
-                            "M 25 8 A 2.5 2.5 0 1 1  20,8 A 2.5 2.5 0 1 1  25 8 z",
-                        drawingParameters: DrawingParameters(),
-                      )
-                    ],
-                    drawingParameters: DrawingParameters(
-                      strokeColor: strokeColor,
-                      fillColor: fillColor,
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5"
-                        " M 20,18 L 25,18",
-                    drawingParameters: DrawingParameters(
-                        fillColor: null,
-                        strokeColor: decorationColor,
-                        strokeLineJoin: StrokeJoin.miter),
-                  )
-                ],
-                drawingParameters: DrawingParameters(
-                    strokeColor: strokeColor,
-                    fillColor: null,
-                    strokeWidth: 1.5,
-                    strokeLineCap: StrokeCap.round,
-                    strokeLineJoin: StrokeJoin.round,
-                    strokeLineMiterLimit: 4.0),
-              ),
-            
-              ...cuteFace(centerX: 22.5, eyeY: 18.6, eyeDX: 3.0,  eyeR: 1.3,  pupilR: 0.65, smileY: 22.7, smileHalfWidth: 2.0, lineColor: const Color(0xFFFFFFFF), eyeColor: const Color(0xFFFFFFFF), pupilColor: const Color(0xFF26232E)),
-            ],
-          ),
-        );
+class WhiteKing extends StatelessWidget {
+  const WhiteKing({super.key, double size = 45.0}) : _size = size;
+  final double _size;
+  @override
+  Widget build(BuildContext context) => _ReillyPiece('wK.svg', size: _size);
 }
 
-/// white rook vector
-class WhiteRook extends VectorBase {
-  final fillColor;
-  final strokeColor;
-
-  /// size (double) : default to 45.0
-  WhiteRook({
-    double size = 45.0,
-    this.fillColor = Colors.white,
-    this.strokeColor = Colors.black,
-  }) : super(
-          baseImageSize: 45.0,
-          requestSize: size,
-          painter: VectorImagePainter(
-            vectorDefinition: <VectorDrawableElement>[
-              VectorImageGroup(
-                children: <VectorDrawableElement>[
-                  VectorImagePathDefinition(
-                    path: "M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z ",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z ",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L"
-                        " 30,11 L 30,9 L 34,9 L 34,14",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 34,14 L 31,17 L 14,17 L 11,14",
-                    drawingParameters: DrawingParameters(),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 31,17 L 31,29.5 L 14,29.5 L 14,17",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 31,29.5 L 32.5,32 L 12.5,32 L 14,29.5",
-                    drawingParameters: DrawingParameters(),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 11,14 L 34,14",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: strokeColor,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  )
-                ],
-                drawingParameters: DrawingParameters(
-                  fillColor: fillColor,
-                  strokeColor: strokeColor,
-                  strokeWidth: 1.5,
-                  strokeLineCap: StrokeCap.round,
-                  strokeLineJoin: StrokeJoin.round,
-                  strokeLineMiterLimit: 4.0,
-                ),
-              ),
-            
-              ...cuteFace(centerX: 22.5, eyeY: 22.4, eyeDX: 3.3,  eyeR: 1.35, pupilR: 0.68, smileY: 26.0, smileHalfWidth: 2.1, lineColor: const Color(0xFF26232E), eyeColor: const Color(0xFF26232E)),
-            ],
-          ),
-        );
+class BlackPawn extends StatelessWidget {
+  const BlackPawn({super.key, double size = 45.0}) : _size = size;
+  final double _size;
+  @override
+  Widget build(BuildContext context) => _ReillyPiece('bP.svg', size: _size);
 }
 
-/// black rook vector
-class BlackRook extends VectorBase {
-  final fillColor;
-  final strokeColor;
-  final decorationColor;
-
-  /// size (double) : default to 45.0
-  BlackRook({
-    double size = 45.0,
-    this.fillColor = Colors.black,
-    this.strokeColor = Colors.black,
-    this.decorationColor = Colors.white,
-  }) : super(
-          baseImageSize: 45.0,
-          requestSize: size,
-          painter: VectorImagePainter(
-            vectorDefinition: <VectorDrawableElement>[
-              VectorImageGroup(
-                children: <VectorDrawableElement>[
-                  VectorImagePathDefinition(
-                    path: "M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z ",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 12.5,32 L 14,29.5 L 31,29.5 L 32.5,32 L 12.5,32 z ",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z ",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 14,29.5 L 14,16.5 L 31,16.5 L 31,29.5 L 14,29.5 z ",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 14,16.5 L 11,14 L 34,14 L 31,16.5 L 14,16.5 z ",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11"
-                        " L 30,9 L 34,9 L 34,14 L 11,14 z ",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 12,35.5 L 33,35.5 L 33,35.5",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: decorationColor,
-                      strokeWidth: 1.0,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 13,31.5 L 32,31.5",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: decorationColor,
-                      strokeWidth: 1.0,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 14,29.5 L 31,29.5",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: decorationColor,
-                      strokeWidth: 1.0,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 14,16.5 L 31,16.5",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: decorationColor,
-                      strokeWidth: 1.0,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 11,14 L 34,14",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: decorationColor,
-                      strokeWidth: 1.0,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  ),
-                ],
-                drawingParameters: DrawingParameters(
-                  fillColor: fillColor,
-                  strokeColor: strokeColor,
-                  strokeWidth: 1.5,
-                  strokeLineCap: StrokeCap.round,
-                  strokeLineJoin: StrokeJoin.round,
-                  strokeLineMiterLimit: 4.0,
-                ),
-              ),
-            
-              ...cuteFace(centerX: 22.5, eyeY: 22.4, eyeDX: 3.3,  eyeR: 1.35, pupilR: 0.68, smileY: 26.0, smileHalfWidth: 2.1, lineColor: const Color(0xFFFFFFFF), eyeColor: const Color(0xFFFFFFFF), pupilColor: const Color(0xFF26232E)),
-            ],
-          ),
-        );
+class BlackRook extends StatelessWidget {
+  const BlackRook({super.key, double size = 45.0}) : _size = size;
+  final double _size;
+  @override
+  Widget build(BuildContext context) => _ReillyPiece('bR.svg', size: _size);
 }
 
-/// white queen vector
-class WhiteQueen extends VectorBase {
-  final fillColor;
-  final strokeColor;
-
-  /// size (double) : default to 45.0
-  WhiteQueen({
-    double size = 45.0,
-    this.fillColor = Colors.white,
-    this.strokeColor = Colors.black,
-  }) : super(
-          baseImageSize: 45.0,
-          requestSize: size,
-          painter: VectorImagePainter(
-            vectorDefinition: <VectorDrawableElement>[
-              VectorImageGroup(
-                children: <VectorDrawableElement>[
-                  VectorImagePathDefinition(
-                    path: "M 9 13 A 2 2 0 1 1  5,13 A 2 2 0 1 1  9 13 z",
-                    drawingParameters: DrawingParameters(
-                      translate: Offset(-1.0, -1.0),
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 9 13 A 2 2 0 1 1  5,13 A 2 2 0 1 1  9 13 z",
-                    drawingParameters: DrawingParameters(
-                      translate: Offset(15.5, -5.5),
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 9 13 A 2 2 0 1 1  5,13 A 2 2 0 1 1  9 13 z",
-                    drawingParameters: DrawingParameters(
-                      translate: Offset(32.0, -1.0),
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 9 13 A 2 2 0 1 1  5,13 A 2 2 0 1 1  9 13 z",
-                    drawingParameters: DrawingParameters(
-                      translate: Offset(7.0, -4.5),
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 9 13 A 2 2 0 1 1  5,13 A 2 2 0 1 1  9 13 z",
-                    drawingParameters: DrawingParameters(
-                      translate: Offset(24.0, -4.0),
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 9,26 C 17.5,24.5 30,24.5 36,26 L 38,14 L 31,25 L 31,11 L 25.5,"
-                        "24.5 L 22.5,9.5 L 19.5,24.5 L 14,10.5 L 14,25 L 7,14 L 9,26 z ",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 9,26 C 9,28 10.5,28 11.5,30 C 12.5,31.5 12.5,31 12,33.5 C "
-                        "10.5,34.5 10.5,36 10.5,36 C 9,37.5 11,38.5 11,38.5 C 17.5,39.5 "
-                        "27.5,39.5 34,38.5 C 34,38.5 35.5,37.5 34,36 C 34,36 34.5,34.5 "
-                        "33,33.5 C 32.5,31 32.5,31.5 33.5,30 C 34.5,28 36,28 36,26 C 27.5,"
-                        "24.5 17.5,24.5 9,26 z ",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 11.5,30 C 15,29 30,29 33.5,30",
-                    drawingParameters: DrawingParameters(fillColor: null),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 12,33.5 C 18,32.5 27,32.5 33,33.5",
-                    drawingParameters: DrawingParameters(fillColor: null),
-                  ),
-                ],
-                drawingParameters: DrawingParameters(
-                  fillColor: fillColor,
-                  strokeColor: strokeColor,
-                  strokeWidth: 1.5,
-                  strokeLineCap: StrokeCap.round,
-                  strokeLineJoin: StrokeJoin.round,
-                  strokeLineMiterLimit: 4.0,
-                ),
-              ),
-            
-              ...cuteFace(centerX: 22.5, eyeY: 29.4, eyeDX: 4.3,  eyeR: 1.4,  pupilR: 0.7,  smileY: 33.0, smileHalfWidth: 2.5, lineColor: const Color(0xFF26232E), eyeColor: const Color(0xFF26232E)),
-            ],
-          ),
-        );
+class BlackKnight extends StatelessWidget {
+  const BlackKnight({super.key, double size = 45.0}) : _size = size;
+  final double _size;
+  @override
+  Widget build(BuildContext context) => _ReillyPiece('bN.svg', size: _size);
 }
 
-/// black queen vector
-class BlackQueen extends VectorBase {
-  final fillColor;
-  final strokeColor;
-  final decorationColor;
-
-  /// size (double) : default to 45.0
-  BlackQueen({
-    double size = 45.0,
-    this.fillColor = Colors.black,
-    this.strokeColor = Colors.black,
-    this.decorationColor = Colors.white,
-  }) : super(
-          baseImageSize: 45.0,
-          requestSize: size,
-          painter: VectorImagePainter(
-            vectorDefinition: <VectorDrawableElement>[
-              VectorImageGroup(
-                children: <VectorDrawableElement>[
-                  VectorImageGroup(
-                    children: <VectorDrawableElement>[
-                      VectorCircle(
-                        position: Offset(6.0, 12.0),
-                        radius: 2.75,
-                        drawingParameters: DrawingParameters(),
-                      ),
-                      VectorCircle(
-                        position: Offset(14.0, 9.0),
-                        radius: 2.75,
-                        drawingParameters: DrawingParameters(),
-                      ),
-                      VectorCircle(
-                        position: Offset(22.5, 8.0),
-                        radius: 2.75,
-                        drawingParameters: DrawingParameters(),
-                      ),
-                      VectorCircle(
-                        position: Offset(31.0, 9.0),
-                        radius: 2.75,
-                        drawingParameters: DrawingParameters(),
-                      ),
-                      VectorCircle(
-                        position: Offset(39.0, 12.0),
-                        radius: 2.75,
-                        drawingParameters: DrawingParameters(),
-                      ),
-                    ],
-                    drawingParameters: DrawingParameters(
-                      fillColor: fillColor,
-                      strokeColor: null,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 9,26 C 17.5,24.5 30,24.5 36,26 L 38.5,13.5 L 31,25 L 30.7,10.9 "
-                        "L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14.3,10.9 L 14,25 L 6.5,13.5 "
-                        "L 9,26 z",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                      strokeColor: strokeColor,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 9,26 C 9,28 10.5,28 11.5,30 C 12.5,31.5 12.5,31 12,33.5 C 10.5,"
-                        "34.5 10.5,36 10.5,36 C 9,37.5 11,38.5 11,38.5 C 17.5,39.5 27.5,39.5"
-                        " 34,38.5 C 34,38.5 35.5,37.5 34,36 C 34,36 34.5,34.5 33,33.5 C "
-                        "32.5,31 32.5,31.5 33.5,30 C 34.5,28 36,28 36,26 C 27.5,24.5 17.5,"
-                        "24.5 9,26 z",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 11,38.5 A 35,35 1 0 0 34,38.5",
-                    drawingParameters: DrawingParameters(
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 11,29 A 35,35 1 0 1 34,29",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: decorationColor,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 12.5,31.5 L 32.5,31.5",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: decorationColor,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 11.5,34.5 A 35,35 1 0 0 33.5,34.5",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: decorationColor,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 10.5,37.5 A 35,35 1 0 0 34.5,37.5",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: decorationColor,
-                    ),
-                  ),
-                ],
-                drawingParameters: DrawingParameters(
-                  fillColor: fillColor,
-                  strokeColor: strokeColor,
-                  strokeWidth: 1.5,
-                  strokeLineMiterLimit: 4.0,
-                  strokeLineJoin: StrokeJoin.round,
-                  strokeLineCap: StrokeCap.round,
-                ),
-              ),
-            
-              ...cuteFace(centerX: 22.5, eyeY: 29.4, eyeDX: 4.3,  eyeR: 1.4,  pupilR: 0.7,  smileY: 33.0, smileHalfWidth: 2.5, lineColor: const Color(0xFF26232E), eyeColor: const Color(0xFF26232E)),
-            ],
-          ),
-        );
+class BlackBishop extends StatelessWidget {
+  const BlackBishop({super.key, double size = 45.0}) : _size = size;
+  final double _size;
+  @override
+  Widget build(BuildContext context) => _ReillyPiece('bB.svg', size: _size);
 }
 
-/// white king vector
-class WhiteKing extends VectorBase {
-  final fillColor;
-  final strokeColor;
-
-  /// size (double) : default to 45.0
-  WhiteKing({
-    double size = 45.0,
-    this.fillColor = Colors.white,
-    this.strokeColor = Colors.black,
-  }) : super(
-          baseImageSize: 45.0,
-          requestSize: size,
-          painter: VectorImagePainter(
-            vectorDefinition: <VectorDrawableElement>[
-              VectorImageGroup(
-                children: <VectorDrawableElement>[
-                  VectorImagePathDefinition(
-                    path: "M 22.5,11.63 L 22.5,6",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: strokeColor,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 20,8 L 25,8",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: strokeColor,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 25.5,14.5 "
-                        "24.5,12 22.5,12 C 20.5,12 19.5,14.5 19.5,14.5 C"
-                        " 18,17.5 22.5,25 22.5,25",
-                    drawingParameters: DrawingParameters(
-                      fillColor: fillColor,
-                      strokeColor: strokeColor,
-                      strokeLineCap: StrokeCap.butt,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 11.5,37 C 17,40.5 27,40.5 32.5,37 L 32.5,30 C"
-                        " 32.5,30 41.5,25.5 38.5,19.5 C 34.5,13 25,16"
-                        " 22.5,23.5 L 22.5,27",
-                    drawingParameters: DrawingParameters(
-                      fillColor: fillColor,
-                      strokeColor: strokeColor,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 22.5,27 L 22.5,23.5 C 19,16 9.5,13"
-                        " 6.5,19.5 C 3.5,25.5 11.5,29.5 11.5,29.5 L"
-                        " 11.5,37",
-                    drawingParameters: DrawingParameters(
-                      fillColor: fillColor,
-                      strokeColor: strokeColor,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 11.5,30 C 17,27 27,27 32.5,30",
-                    drawingParameters: DrawingParameters(
-                        fillColor: null, strokeColor: strokeColor),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 11.5,33.5 C 17,30.5 27,30.5 32.5,33.5",
-                    drawingParameters: DrawingParameters(
-                        fillColor: null, strokeColor: strokeColor),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 11.5,37 C 17,34 27,34 32.5,37",
-                    drawingParameters: DrawingParameters(
-                        fillColor: null, strokeColor: strokeColor),
-                  ),
-                ],
-                drawingParameters: DrawingParameters(
-                  fillColor: null,
-                  strokeColor: strokeColor,
-                  strokeWidth: 1.5,
-                  strokeLineCap: StrokeCap.round,
-                  strokeLineJoin: StrokeJoin.round,
-                  strokeLineMiterLimit: 4.0,
-                ),
-              ),
-            
-              ...cuteFace(centerX: 22.5, eyeY: 30.4, eyeDX: 4.3,  eyeR: 1.4,  pupilR: 0.7,  smileY: 34.0, smileHalfWidth: 2.3, lineColor: const Color(0xFF26232E), eyeColor: const Color(0xFF26232E)),
-            ],
-          ),
-        );
+class BlackQueen extends StatelessWidget {
+  const BlackQueen({super.key, double size = 45.0}) : _size = size;
+  final double _size;
+  @override
+  Widget build(BuildContext context) => _ReillyPiece('bQ.svg', size: _size);
 }
 
-/// black king vector
-class BlackKing extends VectorBase {
-  final fillColor;
-  final strokeColor;
-  final decorationColor;
-
-  /// size (double) : default to 45.0
-  BlackKing({
-    double size = 45.0,
-    this.fillColor = Colors.black,
-    this.strokeColor = Colors.black,
-    this.decorationColor = Colors.white,
-  }) : super(
-          baseImageSize: 45.0,
-          requestSize: size,
-          painter: VectorImagePainter(
-            vectorDefinition: <VectorDrawableElement>[
-              VectorImageGroup(
-                children: <VectorDrawableElement>[
-                  VectorImagePathDefinition(
-                    path: "M 22.5,11.63 L 22.5,6",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: strokeColor,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 25.5,14.5 24.5,12 22.5,12 C"
-                        " 20.5,12 19.5,14.5 19.5,14.5 C 18,17.5 22.5,25 22.5,25",
-                    drawingParameters: DrawingParameters(
-                      fillColor: fillColor,
-                      strokeLineJoin: StrokeJoin.miter,
-                      strokeLineCap: StrokeCap.butt,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 11.5,37 C 17,40.5 27,40.5 32.5,37 L 32.5,30 C 32.5,30 41.5,25.5"
-                        " 38.5,19.5 C 34.5,13 25,16 22.5,23.5 L 22.5,27 L 22.5,23.5 C 19,16 "
-                        "9.5,13 6.5,19.5 C 3.5,25.5 11.5,29.5 11.5,29.5 L 11.5,37 z ",
-                    drawingParameters: DrawingParameters(
-                      fillColor: fillColor,
-                      strokeColor: strokeColor,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path: "M 20,8 L 25,8",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: strokeColor,
-                      strokeLineJoin: StrokeJoin.miter,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 32,29.5 C 32,29.5 40.5,25.5 38.03,19.85 C 34.15,14 25,18 22.5,"
-                        "24.5 L 22.51,26.6 L 22.5,24.5 C 20,18 9.906,14 6.997,19.85 C 4.5,25.5"
-                        " 11.85,28.85 11.85,28.85",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: decorationColor,
-                    ),
-                  ),
-                  VectorImagePathDefinition(
-                    path:
-                        "M 11.5,30 C 17,27 27,27 32.5,30 M 11.5,33.5 C 17,30.5 27,30.5 32.5,"
-                        "33.5 M 11.5,37 C 17,34 27,34 32.5,37",
-                    drawingParameters: DrawingParameters(
-                      fillColor: null,
-                      strokeColor: decorationColor,
-                    ),
-                  )
-                ],
-                drawingParameters: DrawingParameters(
-                  fillColor: null,
-                  strokeColor: strokeColor,
-                  strokeWidth: 1.5,
-                  strokeLineCap: StrokeCap.round,
-                  strokeLineJoin: StrokeJoin.round,
-                  strokeLineMiterLimit: 4.0,
-                ),
-              ),
-            
-              ...cuteFace(centerX: 22.5, eyeY: 30.4, eyeDX: 4.3,  eyeR: 1.4,  pupilR: 0.7,  smileY: 34.0, smileHalfWidth: 2.3, lineColor: const Color(0xFF26232E), eyeColor: const Color(0xFF26232E)),
-            ],
-          ),
-        );
+class BlackKing extends StatelessWidget {
+  const BlackKing({super.key, double size = 45.0}) : _size = size;
+  final double _size;
+  @override
+  Widget build(BuildContext context) => _ReillyPiece('bK.svg', size: _size);
 }
