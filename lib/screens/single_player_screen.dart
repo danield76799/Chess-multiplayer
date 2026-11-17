@@ -164,9 +164,9 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
   }
 
   String get _difficultyLabel => switch (widget.difficulty) {
-        AIDifficulty.makkelijk => 'Makkelijk',
-        AIDifficulty.normaal => 'Gemiddeld',
-        AIDifficulty.moeilijk => 'Moeilijk',
+        AIDifficulty.makkelijk => '🐣 Makkelijk',
+        AIDifficulty.normaal => '🙂 Gemiddeld',
+        AIDifficulty.moeilijk => '🦁 Moeilijk',
       };
 
   String? get _gameOverMessage {
@@ -232,7 +232,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
                             (_aiThinking ? 'Computer denkt na…' : 'Jouw zet'),
                         trailing: (_game.in_check && gameOver == null)
                             ? const Text(
-                                'Schaak!',
+                                '⚔️ Schaken!',
                                 style: TextStyle(
                                   color: ChessTheme.red,
                                   fontWeight: FontWeight.bold,
@@ -247,7 +247,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
                         controller: _controller,
                         size: boardSize,
                         boardOrientation: orientation,
-                        boardColor: BoardColor.green,
+                        boardColor: BoardColor.orange,
                         enableUserMoves: myTurn && gameOver == null,
                         onMove: _onUserMove,
                       ),
@@ -258,7 +258,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen> {
                       FilledButton.icon(
                         onPressed: _reset,
                         icon: const Icon(Icons.replay),
-                        label: const Text('Nog een potje'),
+                        label: const Text('🔁  Nog een potje!'),
                       ),
                   ],
                 ),

@@ -165,7 +165,7 @@ class _GameScreenState extends State<GameScreen> {
                         (myTurn ? 'Jouw zet' : 'Tegenstander is aan zet…'),
                     trailing: service.gameStatus == 'check'
                         ? const Text(
-                            'Schaak!',
+                            '⚔️ Schaken!',
                             style: TextStyle(
                               color: ChessTheme.red,
                               fontWeight: FontWeight.bold,
@@ -180,7 +180,7 @@ class _GameScreenState extends State<GameScreen> {
                     controller: controller,
                     size: boardSize,
                     boardOrientation: orientation,
-                    boardColor: BoardColor.green,
+                    boardColor: BoardColor.orange,
                     enableUserMoves: myTurn && gameOver == null,
                     onMove: () {
                       // De board heeft de zet al op controller.game toegepast;
@@ -195,7 +195,7 @@ class _GameScreenState extends State<GameScreen> {
                   FilledButton.icon(
                     onPressed: service.resetGame,
                     icon: const Icon(Icons.replay),
-                    label: const Text('Nog een potje'),
+                    label: const Text('🔁  Nog een potje!'),
                   ),
               ],
             ),

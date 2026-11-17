@@ -109,8 +109,18 @@ class _HeroHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        const _GradientTitle(text: 'P2P Chess'),
-        const SizedBox(height: 6),
+        const _GradientTitle(text: 'Schaken!'),
+        const SizedBox(height: 4),
+        const Text(
+          'Word de schaakkoning 👑',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: ChessTheme.text,
+          ),
+        ),
+        const SizedBox(height: 4),
         const Text(
           'Kies je speltype',
           style: TextStyle(
@@ -257,9 +267,9 @@ class _SinglePlayerCard extends StatelessWidget {
             spacing: 8,
             children: [
               for (final entry in const {
-                AIDifficulty.makkelijk: 'Makkelijk',
-                AIDifficulty.normaal: 'Gemiddeld',
-                AIDifficulty.moeilijk: 'Moeilijk',
+                AIDifficulty.makkelijk: '🐣 Makkelijk',
+                AIDifficulty.normaal: '🙂 Gemiddeld',
+                AIDifficulty.moeilijk: '🦁 Moeilijk',
               }.entries)
                 ChoiceChip(
                   label: Text(entry.value),
@@ -274,13 +284,13 @@ class _SinglePlayerCard extends StatelessWidget {
             children: [
               ChoiceChip(
                 avatar: const Icon(Icons.circle, size: 14, color: Colors.white),
-                label: const Text('Ik speel wit'),
+                label: const Text('♔ Wit'),
                 selected: playerWhite,
                 onSelected: (_) => onColorChanged(true),
               ),
               ChoiceChip(
                 avatar: const Icon(Icons.circle, size: 14, color: Colors.black87),
-                label: const Text('Ik speel zwart'),
+                label: const Text('♚ Zwart'),
                 selected: !playerWhite,
                 onSelected: (_) => onColorChanged(false),
               ),
@@ -298,7 +308,7 @@ class _SinglePlayerCard extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.play_arrow),
-            label: const Text('Start tegen de computer'),
+            label: const Text('🎮  Start tegen de computer'),
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
             ),
@@ -324,7 +334,7 @@ class _MultiplayerCard extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const MenuScreen()),
         ),
         icon: const Icon(Icons.people_alt_outlined),
-        label: const Text('Naar de lobby'),
+        label: const Text('🎈  Naar de lobby'),
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(52),
           backgroundColor: ChessTheme.surfaceHighest,

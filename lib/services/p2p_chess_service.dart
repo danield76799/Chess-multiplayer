@@ -78,7 +78,7 @@ class P2PChessService with ChangeNotifier {
     if (game.in_checkmate) {
       // De kant aan zet is schaakmat en verliest dus.
       final loserIsWhite = game.turn == chess_lib.Chess.WHITE;
-      return loserIsWhite ? 'Schaakmat — zwart wint!' : 'Schaakmat — wit wint!';
+      return loserIsWhite ? '🏆 Schaakmat — zwart wint!' : '🏆 Schaakmat — wit wint!';
     }
     if (game.in_stalemate) return 'Patt — remise.';
     if (game.in_draw) return 'Remise.';

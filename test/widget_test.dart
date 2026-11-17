@@ -20,12 +20,12 @@ void main() {
         child: const MyApp(),
       ),
     );
-    expect(find.text('P2P Chess'), findsOneWidget);
+    expect(find.text('Schaken!'), findsOneWidget);
     expect(find.text('Tegen de computer'), findsOneWidget);
     expect(find.text('Met een vriend'), findsOneWidget);
 
     // Via de lobby-knop kom je op het multiplayer-scherm.
-    await tester.tap(find.text('Naar de lobby'));
+    await tester.tap(find.text('🎈  Naar de lobby'));
     await tester.pumpAndSettle();
     expect(find.text('Nieuw spel host'), findsOneWidget);
     expect(find.text('Zoeken'), findsOneWidget);

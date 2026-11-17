@@ -4,24 +4,24 @@ import 'package:flutter/material.dart';
 class ChessTheme {
   const ChessTheme._();
 
-  static const Color gold = Color(0xFFE3B764);
-  static const Color goldDark = Color(0xFFC69A3F);
-  static const Color background = Color(0xFF0E1512);
-  static const Color surface = Color(0xFF16211B);
-  static const Color surfaceHigh = Color(0xFF1F2C24);
-  static const Color surfaceHighest = Color(0xFF28382F);
-  static const Color line = Color(0xFF2A3B32);
-  static const Color text = Color(0xFFECEFE8);
-  static const Color textDim = Color(0xFF9DB3A6);
-  static const Color green = Color(0xFF8FD0A0);
-  static const Color red = Color(0xFFFF8A80);
+  static const Color gold = Color(0xFFFFC53D);
+  static const Color goldDark = Color(0xFFE0A32E);
+  static const Color background = Color(0xFF130E28);
+  static const Color surface = Color(0xFF1E1736);
+  static const Color surfaceHigh = Color(0xFF2A2048);
+  static const Color surfaceHighest = Color(0xFF342952);
+  static const Color line = Color(0xFF3A2E5C);
+  static const Color text = Color(0xFFF5F0FF);
+  static const Color textDim = Color(0xFFB0A6D6);
+  static const Color green = Color(0xFF6FDD8B);
+  static const Color red = Color(0xFFFF7A6B);
 
   /// Achtergrond met diepe groentinten (linksboven → rechtsonder).
   static const BoxDecoration backgroundDecoration = BoxDecoration(
     gradient: LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFF16241D), Color(0xFF0E1512), Color(0xFF090E0C)],
+      colors: [Color(0xFF241A4E), Color(0xFF1A1236), Color(0xFF100A22)],
       stops: [0.0, 0.55, 1.0],
     ),
   );
@@ -30,15 +30,15 @@ class ChessTheme {
     const scheme = ColorScheme(
       brightness: Brightness.dark,
       primary: gold,
-      onPrimary: Color(0xFF241A05),
-      primaryContainer: Color(0xFF4A3B1B),
-      onPrimaryContainer: Color(0xFFF6E3AC),
-      secondary: Color(0xFF8FD0A0),
-      onSecondary: Color(0xFF0E2415),
-      secondaryContainer: Color(0xFF24401F),
-      onSecondaryContainer: Color(0xFFB9EBC6),
-      tertiary: Color(0xFFE8C9A0),
-      onTertiary: Color(0xFF3A2408),
+      onPrimary: Color(0xFF3A2600),
+      primaryContainer: Color(0xFF4A3410),
+      onPrimaryContainer: Color(0xFFFFE9A8),
+      secondary: Color(0xFF5CE8C0),
+      onSecondary: Color(0xFF053220),
+      secondaryContainer: Color(0xFF17473B),
+      onSecondaryContainer: Color(0xFFA9F2D3),
+      tertiary: Color(0xFFFF9EC6),
+      onTertiary: Color(0xFF3F0A22),
       error: red,
       onError: Color(0xFF5B1008),
       surface: surface,
@@ -80,7 +80,7 @@ class ChessTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: gold,
-          foregroundColor: const Color(0xFF241A05),
+          foregroundColor: const Color(0xFF3A2600),
           textStyle: const TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.2),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
@@ -94,9 +94,9 @@ class ChessTheme {
       ),
       chipTheme: const ChipThemeData(
         backgroundColor: surfaceHigh,
-        selectedColor: Color(0xFF4A3B1B),
+        selectedColor: Color(0xFF4A3410),
         labelStyle: TextStyle(color: text),
-        secondaryLabelStyle: TextStyle(color: Color(0xFFF6E3AC)),
+        secondaryLabelStyle: TextStyle(color: Color(0xFFFFE9A8)),
         side: BorderSide(color: line),
         shape: StadiumBorder(),
         showCheckmark: false,
