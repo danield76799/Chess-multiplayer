@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/p2p_chess_service.dart';
 import '../theme.dart';
+import '../services/chess_clock.dart';
+import '../widgets/time_control_picker.dart';
 import 'game_screen.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -14,6 +16,7 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   final TextEditingController _ipController = TextEditingController();
   bool _joining = false;
+  TimeControl _timeControl = TimeControl.defaultPreset;
 
   @override
   void dispose() {
@@ -23,7 +26,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
   Future<void> _hostGame() async {
     final service = context.read<P2PChessService>();
-    final ok = await service.startHost();
+    final ok = await service.startHost(timeControl: _timeControl);
     if (!mounted) return;
     if (ok) {
       Navigator.push(
@@ -81,6 +84,16 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
             const SizedBox(height: 32),
 
+            TimeControlPicker(
+              selected: _timeControl,
+              onChanged: (tc) => setState(() => _timeControl = tc),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'De bedenktijd geldt voor de hele partij en geldt voor beide spelers.',
+              style: TextStyle(fontSize: 12, color: Colors.white60),
+            ),
+            const SizedBox(height: 16),
             // Hosten
             FilledButton.icon(
               onPressed: service.isConnecting ? null : _hostGame,

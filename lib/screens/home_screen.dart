@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../services/chess_ai.dart';
+import '../services/chess_clock.dart';
 import '../theme.dart';
+import '../widgets/time_control_picker.dart';
 import '../widgets/sound_toggle.dart';
 import 'menu_screen.dart';
 import 'single_player_screen.dart';
@@ -18,6 +20,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   AIDifficulty _aiDifficulty = AIDifficulty.normaal;
   bool _playerWhite = true;
+  TimeControl _timeControl = TimeControl.defaultPreset;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +51,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             setState(() => _aiDifficulty = d),
                         playerWhite: _playerWhite,
                         onColorChanged: (w) => setState(() => _playerWhite = w),
+                        timeControl: _timeControl,
+                        onTimeControlChanged: (tc) =>
+                            setState(() => _timeControl = tc),
                       ),
                       const SizedBox(height: 16),
                       const _MultiplayerCard(),
@@ -256,12 +262,16 @@ class _SinglePlayerCard extends StatelessWidget {
   final ValueChanged<AIDifficulty> onDifficultyChanged;
   final bool playerWhite;
   final ValueChanged<bool> onColorChanged;
+  final TimeControl timeControl;
+  final ValueChanged<TimeControl> onTimeControlChanged;
 
   const _SinglePlayerCard({
     required this.difficulty,
     required this.onDifficultyChanged,
     required this.playerWhite,
     required this.onColorChanged,
+    required this.timeControl,
+    required this.onTimeControlChanged,
   });
 
   @override
@@ -306,6 +316,11 @@ class _SinglePlayerCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          TimeControlPicker(
+            selected: timeControl,
+            onChanged: onTimeControlChanged,
+          ),
           const SizedBox(height: 14),
           FilledButton.icon(
             onPressed: () => Navigator.push(
@@ -314,6 +329,7 @@ class _SinglePlayerCard extends StatelessWidget {
                 builder: (_) => SinglePlayerScreen(
                   difficulty: difficulty,
                   playerIsWhite: playerWhite,
+                  timeControl: timeControl,
                 ),
               ),
             ),

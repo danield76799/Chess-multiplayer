@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:chess/chess.dart' as chess_lib;
+import 'chess_clock.dart';
 
 enum P2PMode { host, join }
 
@@ -44,6 +45,9 @@ class P2PChessService with ChangeNotifier {
 
   ChessConnectionState connectionState = ChessConnectionState.idle;
   String? errorMessage;
+
+  /// Gekozen tijdcontrole voor dit spel (bepaald door de host).
+  TimeControl timeControl = TimeControl.defaultPreset;
 
   /// Laatst ontdekte host via UDP-broadcast, bijvoorbeeld "192.168.1.23".
   String? discoveredHostIp;
@@ -172,8 +176,9 @@ class P2PChessService with ChangeNotifier {
   // ─────────────────────────── Hosten ───────────────────────────
 
   /// Start een host op [port]. Geeft true terug als de server draait.
-  Future<bool> startHost({int port = kGamePort}) async {
+  Future<bool> startHost({int port = kGamePort, TimeControl? timeControl}) async {
     await leaveGame();
+    this.timeControl = timeControl ?? TimeControl.defaultPreset;
     _mode = P2PMode.host;
     playerColor = 'w';
     game = chess_lib.Chess();
@@ -232,7 +237,7 @@ class P2PChessService with ChangeNotifier {
     // playerColor staat bij de host al op 'w' (gezet in startHost).
     connectionState = ChessConnectionState.connected;
     // Vertel de joiner dat hij zwart speelt.
-    _send({'type': 'init', 'color': 'b'});
+    _send({'type': 'init', 'color': 'b', 'tc': timeControl.toWire()});
     _gameStream.add({'type': 'connected', 'color': 'b'});
     notifyListeners();
   }
@@ -350,6 +355,8 @@ class P2PChessService with ChangeNotifier {
         break;
       case 'init':
         playerColor = data['color'] as String?;
+        final tc = TimeControl.fromWire(data['tc']?.toString());
+        if (tc != null) timeControl = tc;
         _gameStream.add({'type': 'started', 'color': playerColor});
         notifyListeners();
         break;

@@ -9,8 +9,9 @@ import '../services/chess_history.dart';
 import '../services/p2p_chess_service.dart';
 import '../services/sound_service.dart';
 import '../theme.dart';
+import '../services/chess_clock.dart';
 import '../widgets/board_frame.dart';
-import '../widgets/move_clock.dart';
+import '../widgets/chess_clock_bar.dart';
 import '../widgets/captured_pieces.dart';
 import '../widgets/sound_toggle.dart';
 
@@ -27,7 +28,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   StreamSubscription<Map<String, dynamic>>? _subscription;
   int _pieceCount = 32;
   String? _lastSoundFen;
-  final MoveClock _clock = MoveClock();
+  late ChessClockSet _clock;
   Timer? _clockTicker;
   bool _showLastMove = false;
 
@@ -42,17 +43,25 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     // een identieke FEN is onschadelijk, dus dubbele updates zijn oké.
     WidgetsBinding.instance.addObserver(this);
     _service = context.read<P2PChessService>();
+    _clock = ChessClockSet(_service.timeControl);
     _subscription = _service.gameStream.listen((data) {
       if (!mounted) return;
       if (data['type'] == 'connected' || data['type'] == 'started') {
         SoundService.instance.play(ChessSound.start);
+        _clock = ChessClockSet(_service.timeControl); // speler komt uit 'init'-bericht
         _clock.reset();
         return;
       }
       if (data['type'] == 'update' && data['fen'] is String) {
         final fen = data['fen'] as String;
         controller.loadFen(fen);
-        _clock.reset();
+        if (fen == P2PChessService.initialFen) {
+          _clock.reset();
+        } else {
+          // De kant die net zette krijgt de increment.
+          final mover = _service.game.turn == chess_lib.Chess.WHITE ? 'b' : 'w';
+          _clock.incrementFor(mover);
+        }
         _announceMove(fen);
       }
       if (data['type'] == 'flag') {
@@ -66,17 +75,16 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
   void _startClockTicker() {
     _clockTicker?.cancel();
-    _clockTicker = Timer.periodic(const Duration(milliseconds: 200), (_) {
+    _clockTicker = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (!mounted) return;
-      if (_service.gameOverMessage == null) {
-        setState(() {});
-        if (_clock.isExpired &&
-            _service.connectionState == ChessConnectionState.connected &&
-            _service.flaggedLoser == null) {
-          final loser =
-              _service.game.turn == chess_lib.Chess.WHITE ? 'w' : 'b';
-          _service.flagGame(loser);
-        }
+      if (_service.gameOverMessage != null) return; // klok staat stil
+      if (_service.connectionState != ChessConnectionState.connected) return;
+      final side = _service.game.turn == chess_lib.Chess.WHITE ? 'w' : 'b';
+      setState(() {});
+      _clock.tick(side);
+      final flag = _clock.flaggedSide();
+      if (flag != null && _service.flaggedLoser == null) {
+        _service.flagGame(flag);
       }
     });
   }
@@ -231,13 +239,19 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                           )
                         : null,
                   ),
-                  const SizedBox(width: 10),
-                  MoveClockPill(
-                    secondsLeft: _clock.secondsLeft,
-                    active: gameOver == null,
-                  ),
                   ],
                   ),
+                ),
+                const SizedBox(height: 8),
+                ChessClockBar(
+                  leftLabel: service.playerColor == 'w' ? 'WIT · JIJ' : 'WIT · TEGENSTANDER',
+                  leftRemaining: _clock.remaining('w'),
+                  leftActive: gameOver == null && service.game.turn == chess_lib.Chess.WHITE,
+                  leftFlagged: _service.flaggedLoser == 'w',
+                  rightLabel: service.playerColor == 'b' ? 'ZWART · JIJ' : 'ZWART · TEGENSTANDER',
+                  rightRemaining: _clock.remaining('b'),
+                  rightActive: gameOver == null && service.game.turn == chess_lib.Chess.BLACK,
+                  rightFlagged: _service.flaggedLoser == 'b',
                 ),
                 if (showArrow)
                   Padding(
