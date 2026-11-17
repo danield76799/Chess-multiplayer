@@ -6,6 +6,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../services/chess_ai.dart';
+import '../services/chess_history.dart';
 import '../services/sound_service.dart';
 import '../theme.dart';
 import '../widgets/move_clock.dart';
@@ -42,6 +43,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
   final MoveClock _clock = MoveClock();
   bool _flagged = false;
   bool _flagLoserIsPlayer = true;
+  bool _showLastMove = false;
   int _lastPieceCount = 32;
 
   bool get _aiPlaysWhite => !widget.playerIsWhite;
@@ -238,6 +240,8 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
     final myTurn = _isPlayerTurn && !_aiThinking;
     final orientation =
         widget.playerIsWhite ? PlayerColor.white : PlayerColor.black;
+    final opponentMove = lastOpponentMove(_game, localIsWhite: widget.playerIsWhite);
+    final showArrow = _showLastMove && opponentMove != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -248,6 +252,13 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
             tooltip: 'Zet terugdraaien',
             icon: const Icon(Icons.undo),
             onPressed: _game.half_moves == 0 ? null : _undo,
+          ),
+          IconButton(
+            tooltip: 'Toon tegenstanders laatste zet',
+            icon: Icon(_showLastMove ? Icons.visibility : Icons.visibility_off),
+            onPressed: opponentMove == null
+                ? null
+                : () => setState(() => _showLastMove = !_showLastMove),
           ),
           IconButton(
             tooltip: 'Opnieuw beginnen',
@@ -303,6 +314,18 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
                         ],
                       ),
                     ),
+                    if (showArrow)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Text(
+                          'Laatste zet computer: ${opponentMove.san}',
+                          style: const TextStyle(
+                            color: ChessTheme.gold,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 8),
                     BoardFrame(
                       child: ChessBoard(
@@ -311,6 +334,15 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
                         boardOrientation: orientation,
                         boardColor: BoardColor.orange,
                         enableUserMoves: myTurn && gameOver == null,
+                        arrows: showArrow
+                            ? [
+                                BoardArrow(
+                                  from: opponentMove.from,
+                                  to: opponentMove.to,
+                                  color: ChessTheme.gold,
+                                ),
+                              ]
+                            : const [],
                         onMove: _onUserMove,
                       ),
                     ),

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:chess/chess.dart' as chess_lib;
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../services/chess_ai.dart';
+import '../services/chess_history.dart';
 import '../services/p2p_chess_service.dart';
 import '../services/sound_service.dart';
 import '../theme.dart';
@@ -28,6 +29,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   String? _lastSoundFen;
   final MoveClock _clock = MoveClock();
   Timer? _clockTicker;
+  bool _showLastMove = false;
 
   @override
   void initState() {
@@ -136,12 +138,24 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     final service = context.watch<P2PChessService>();
     final String colorLabel =
         service.playerColor == 'w' ? 'Wit' : (service.playerColor == 'b' ? 'Zwart' : '—');
+    final opponentMove = lastOpponentMove(
+      service.game,
+      localIsWhite: service.playerColor != 'b',
+    );
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Jij: $colorLabel'),
         actions: [
           const SoundToggle(),
+          if (service.connectionState == ChessConnectionState.connected)
+            IconButton(
+              tooltip: 'Toon tegenstanders laatste zet',
+              icon: Icon(_showLastMove ? Icons.visibility : Icons.visibility_off),
+              onPressed: opponentMove == null
+                  ? null
+                  : () => setState(() => _showLastMove = !_showLastMove),
+            ),
           if (service.connectionState == ChessConnectionState.connected)
             IconButton(
               tooltip: 'Opnieuw beginnen',
@@ -153,13 +167,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       body: Container(
         decoration: ChessTheme.backgroundDecoration,
         child: SafeArea(
-          child: _buildBody(service),
+          child: _buildBody(service, opponentMove),
         ),
       ),
     );
   }
 
-  Widget _buildBody(P2PChessService service) {
+  Widget _buildBody(P2PChessService service, LastOpponentMove? opponentMove) {
     // Host wacht op een tegenstander.
     if (service.connectionState == ChessConnectionState.connecting ||
         service.connectionState == ChessConnectionState.searching) {
@@ -181,6 +195,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     final orientation = service.playerColor == 'b'
         ? PlayerColor.black
         : PlayerColor.white;
+    final showArrow = _showLastMove && opponentMove != null;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -224,6 +239,18 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                   ],
                   ),
                 ),
+                if (showArrow)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      'Laatste zet tegenstander: ${opponentMove.san}',
+                      style: const TextStyle(
+                        color: ChessTheme.gold,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 12),
                 BoardFrame(
                   child: ChessBoard(
@@ -232,6 +259,15 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                     boardOrientation: orientation,
                     boardColor: BoardColor.orange,
                     enableUserMoves: myTurn && gameOver == null,
+                    arrows: showArrow
+                        ? [
+                            BoardArrow(
+                              from: opponentMove.from,
+                              to: opponentMove.to,
+                              color: ChessTheme.gold,
+                            ),
+                          ]
+                        : const [],
                     onMove: () {
                       // De board heeft de zet al op controller.game toegepast;
                       // stuur de nieuwe stelling naar de tegenstander.
