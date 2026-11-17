@@ -100,10 +100,9 @@ packages:
   chess_vectors_flutter:
     dependency: "direct main"
     description:
-      name: chess_vectors_flutter
-      sha256: "5d9d013d2f1340bde1fda15d915262a420f75ff7f1e219860cb364073e5a3456"
-      url: "https://pub.dev"
-    source: hosted
+      path: "third_party/chess_vectors_flutter"
+      relative: true
+    source: path
     version: "1.1.0"
   clock:
     dependency: transitive
