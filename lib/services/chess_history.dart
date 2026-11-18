@@ -28,3 +28,15 @@ LastOpponentMove? lastOpponentMove(Chess game, {required bool localIsWhite}) {
   }
   return null;
 }
+
+/// Geeft de laatste zet van wie dan ook terug (of null als er nog geen zet is).
+LastOpponentMove? lastMove(Chess game) {
+  final history = game.getHistory({'verbose': true});
+  if (history.isEmpty) return null;
+  final m = history.last as Map;
+  return LastOpponentMove(
+    san: (m['san'] ?? '?').toString(),
+    from: (m['from'] ?? '').toString(),
+    to: (m['to'] ?? '').toString(),
+  );
+}

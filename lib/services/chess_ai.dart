@@ -144,6 +144,9 @@ class ChessAI {
     return moves;
   }
 
+  static const int _negInf = -1000000000;
+  static const int _posInf = 1000000000;
+
   static int _negamax(chess_lib.Chess game, int depth, int alpha, int beta) {
     if (depth == 0) {
       return _sign(game.turn) * evaluate(game);
@@ -153,7 +156,7 @@ class ChessAI {
       // Schaakmat (zij aan zet is verloren) of patt.
       return game.in_check ? -_mateScore - depth : 0;
     }
-    var best = -1 << 30;
+    var best = _negInf;
     for (final move in moves) {
       game.make_move(move);
       final score = -_negamax(game, depth - 1, -beta, -alpha);
@@ -195,11 +198,11 @@ class ChessAI {
       AIDifficulty.moeilijk => 3,
     };
 
-    var bestScore = -1 << 30;
+    var bestScore = _negInf;
     var bestMoves = <chess_lib.Move>[];
     for (final move in moves) {
       game.make_move(move);
-      final raw = -_negamax(game, depth - 1, -(1 << 30), 1 << 30);
+      final raw = -_negamax(game, depth - 1, -_posInf, _posInf);
       game.undo_move();
       // negamax geeft de score relatief t.o.v. de speler die aan zet is.
       if (raw > bestScore) {

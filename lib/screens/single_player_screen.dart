@@ -15,6 +15,7 @@ import '../services/sound_service.dart';
 import '../theme.dart';
 import '../widgets/chess_clock_bar.dart';
 import '../widgets/board_frame.dart';
+import '../widgets/last_move_highlight.dart';
 import '../widgets/captured_pieces.dart';
 import '../widgets/sound_toggle.dart';
 
@@ -300,6 +301,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
         widget.playerIsWhite ? PlayerColor.white : PlayerColor.black;
     final opponentMove = lastOpponentMove(_game, localIsWhite: widget.playerIsWhite);
     final showArrow = _showLastMove && opponentMove != null;
+    final highlight = lastMove(_game);
 
     return Scaffold(
       appBar: AppBar(
@@ -392,22 +394,38 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
                       ),
                     const SizedBox(height: 8),
                     BoardFrame(
-                      child: ChessBoard(
-                        controller: _controller,
-                        size: boardSize,
-                        boardOrientation: orientation,
-                        boardColor: BoardColor.orange,
-                        enableUserMoves: myTurn && gameOver == null,
-                        arrows: showArrow
-                            ? [
-                                BoardArrow(
-                                  from: opponentMove.from,
-                                  to: opponentMove.to,
-                                  color: ChessTheme.gold,
+                      child: SizedBox(
+                        width: boardSize,
+                        height: boardSize,
+                        child: Stack(
+                          children: [
+                            ChessBoard(
+                              controller: _controller,
+                              size: boardSize,
+                              boardOrientation: orientation,
+                              boardColor: BoardColor.orange,
+                              enableUserMoves: myTurn && gameOver == null,
+                              arrows: showArrow
+                                  ? [
+                                      BoardArrow(
+                                        from: opponentMove.from,
+                                        to: opponentMove.to,
+                                        color: ChessTheme.gold,
+                                      ),
+                                    ]
+                                  : const [],
+                              onMove: _onUserMove,
+                            ),
+                            if (highlight != null)
+                              Positioned.fill(
+                                child: LastMoveHighlight(
+                                  from: highlight.from,
+                                  to: highlight.to,
+                                  orientation: orientation,
                                 ),
-                              ]
-                            : const [],
-                        onMove: _onUserMove,
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                     CapturedPiecesBar(game: _game),

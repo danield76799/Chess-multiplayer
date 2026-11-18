@@ -14,6 +14,7 @@ import '../services/sound_service.dart';
 import '../theme.dart';
 import '../services/chess_clock.dart';
 import '../widgets/board_frame.dart';
+import '../widgets/last_move_highlight.dart';
 import '../widgets/chess_clock_bar.dart';
 import '../widgets/captured_pieces.dart';
 import '../widgets/sound_toggle.dart';
@@ -232,6 +233,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildBody(P2PChessService service, LastOpponentMove? opponentMove) {
+    final highlight = lastMove(service.game);
     // Host wacht op een tegenstander.
     if (service.connectionState == ChessConnectionState.connecting ||
         service.connectionState == ChessConnectionState.searching) {
@@ -326,26 +328,42 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                   ),
                 const SizedBox(height: 12),
                 BoardFrame(
-                  child: ChessBoard(
-                    controller: controller,
-                    size: boardSize,
-                    boardOrientation: orientation,
-                    boardColor: BoardColor.orange,
-                    enableUserMoves: myTurn && gameOver == null && service.isConnected,
-                    arrows: showArrow
-                        ? [
-                            BoardArrow(
-                              from: opponentMove.from,
-                              to: opponentMove.to,
-                              color: ChessTheme.gold,
+                  child: SizedBox(
+                    width: boardSize,
+                    height: boardSize,
+                    child: Stack(
+                      children: [
+                        ChessBoard(
+                          controller: controller,
+                          size: boardSize,
+                          boardOrientation: orientation,
+                          boardColor: BoardColor.orange,
+                          enableUserMoves: myTurn && gameOver == null && service.isConnected,
+                          arrows: showArrow
+                              ? [
+                                  BoardArrow(
+                                    from: opponentMove.from,
+                                    to: opponentMove.to,
+                                    color: ChessTheme.gold,
+                                  ),
+                                ]
+                              : const [],
+                          onMove: () {
+                            // De board heeft de zet al op controller.game toegepast;
+                            // stuur de nieuwe stelling naar de tegenstander.
+                            service.syncLocalMove(controller.game.fen);
+                          },
+                        ),
+                        if (highlight != null)
+                          Positioned.fill(
+                            child: LastMoveHighlight(
+                              from: highlight.from,
+                              to: highlight.to,
+                              orientation: orientation,
                             ),
-                          ]
-                        : const [],
-                    onMove: () {
-                      // De board heeft de zet al op controller.game toegepast;
-                      // stuur de nieuwe stelling naar de tegenstander.
-                      service.syncLocalMove(controller.game.fen);
-                    },
+                          ),
+                      ],
+                    ),
                   ),
                 ),
                 CapturedPiecesBar(game: service.game),
