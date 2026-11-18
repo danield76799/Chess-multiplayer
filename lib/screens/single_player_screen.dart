@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:chess/chess.dart' as chess_lib;
 import 'package:flutter/material.dart';
@@ -184,11 +185,22 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
     return _game.turn == aiColor;
   }
 
-  void _scheduleAiMove({Duration delay = const Duration(milliseconds: 450)}) {
+  /// Wachttijd voordat de computer zet, zodat hij niet kunstmatig vlot
+  /// antwoordt. Makkelijk reageert sneller, moeilijk denkt langer na.
+  Duration _aiThinkTime() {
+    final r = Random();
+    return switch (widget.difficulty) {
+      AIDifficulty.makkelijk => Duration(milliseconds: 500 + r.nextInt(500)),
+      AIDifficulty.normaal => Duration(milliseconds: 900 + r.nextInt(800)),
+      AIDifficulty.moeilijk => Duration(milliseconds: 1300 + r.nextInt(1100)),
+    };
+  }
+
+  void _scheduleAiMove({Duration? delay}) {
     if (!_isAiTurn || _aiThinking) return;
     setState(() => _aiThinking = true);
     _aiTimer?.cancel();
-    _aiTimer = Timer(delay, _playAiMove);
+    _aiTimer = Timer(delay ?? _aiThinkTime(), _playAiMove);
   }
 
   void _playAiMove() {

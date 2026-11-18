@@ -198,20 +198,25 @@ class ChessAI {
       AIDifficulty.moeilijk => 3,
     };
 
+    // Scoor elke zet, en kies daarna willekeurig uit de zetten die hooguit
+    // [varieteit] centipunten achterlopen op de beste. Zo speelt de computer
+    // niet elke partij identiek (exacte ties komen zelden voor), terwijl de
+    // zetten nog steeds (bijna) even sterk zijn.
+    const varieteit = 15;
+    final scores = <(chess_lib.Move, int)>[];
     var bestScore = _negInf;
-    var bestMoves = <chess_lib.Move>[];
     for (final move in moves) {
       game.make_move(move);
       final raw = -_negamax(game, depth - 1, -_posInf, _posInf);
       game.undo_move();
       // negamax geeft de score relatief t.o.v. de speler die aan zet is.
-      if (raw > bestScore) {
-        bestScore = raw;
-        bestMoves = [move];
-      } else if (raw == bestScore) {
-        bestMoves.add(move);
-      }
+      scores.add((move, raw));
+      if (raw > bestScore) bestScore = raw;
     }
-    return bestMoves[rng.nextInt(bestMoves.length)];
+    final kandidaten = [
+      for (final e in scores)
+        if (e.$2 >= bestScore - varieteit) e.$1,
+    ];
+    return kandidaten[rng.nextInt(kandidaten.length)];
   }
 }
