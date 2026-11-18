@@ -1,7 +1,7 @@
 name: chess_multiplayer
 description: A P2P real-time multiplayer chess game.
 publish_to: 'none'
-version: 1.6.0+7
+version: 1.7.0+8
 
 environment:
   sdk: ^3.0.0
