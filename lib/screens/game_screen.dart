@@ -48,8 +48,6 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       if (!mounted) return;
       if (data['type'] == 'connected' || data['type'] == 'started') {
         SoundService.instance.play(ChessSound.start);
-        _clock = ChessClockSet(_service.timeControl); // speler komt uit 'init'-bericht
-        _clock.reset();
         return;
       }
       if (data['type'] == 'update' && data['fen'] is String) {
@@ -188,12 +186,21 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       return _WaitingView(isHost: service.isHost);
     }
 
-    // Verbinding mislukt of verbroken.
+    // Verbinding is weg en er wordt opnieuw geprobeerd.
+    if (service.connectionState == ChessConnectionState.reconnecting) {
+      return _ReconnectingView(
+        message: service.errorMessage ?? 'Opnieuw verbinden…',
+        onCancel: () => Navigator.of(context).pop(),
+      );
+    }
+
+    // Verbinding mislukt of definitief verbroken.
     if (service.connectionState == ChessConnectionState.error ||
         service.connectionState == ChessConnectionState.disconnected) {
       return _ErrorView(
         message: service.errorMessage ?? 'De verbinding is verbroken.',
         onBack: () => Navigator.of(context).pop(),
+        onRetry: service.retryConnection,
       );
     }
 
@@ -272,7 +279,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                     size: boardSize,
                     boardOrientation: orientation,
                     boardColor: BoardColor.orange,
-                    enableUserMoves: myTurn && gameOver == null,
+                    enableUserMoves: myTurn && gameOver == null && service.isConnected,
                     arrows: showArrow
                         ? [
                             BoardArrow(
@@ -342,8 +349,9 @@ class _WaitingView extends StatelessWidget {
 class _ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback onBack;
+  final Future<void> Function()? onRetry;
 
-  const _ErrorView({required this.message, required this.onBack});
+  const _ErrorView({required this.message, required this.onBack, this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -361,9 +369,61 @@ class _ErrorView extends StatelessWidget {
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 24),
-            FilledButton(
+            if (onRetry != null) ...[
+              FilledButton.icon(
+                onPressed: () => onRetry!(),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Opnieuw proberen'),
+              ),
+              const SizedBox(height: 10),
+            ],
+            OutlinedButton(
               onPressed: onBack,
               child: const Text('Terug naar menu'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Tussenscherm tijdens automatische herverbinding na een korte storing.
+class _ReconnectingView extends StatelessWidget {
+  final String message;
+  final VoidCallback onCancel;
+
+  const _ReconnectingView({required this.message, required this.onCancel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 24),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.wifi_find, size: 22, color: Colors.amber),
+                SizedBox(width: 8),
+                Text('Verbinding hersteld wordt geprobeerd…',
+                    style: TextStyle(fontSize: 16)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, color: Colors.white60),
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton(
+              onPressed: onCancel,
+              child: const Text('Annuleren'),
             ),
           ],
         ),

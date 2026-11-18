@@ -8,7 +8,7 @@ import 'chess_clock.dart';
 
 enum P2PMode { host, join }
 
-enum ChessConnectionState { idle, searching, connecting, connected, disconnected, error }
+enum ChessConnectionState { idle, searching, connecting, connected, disconnected, error, reconnecting }
 
 /// Schaak via een lokaal netwerk (LAN / zelfde Wi-Fi).
 ///
@@ -34,6 +34,27 @@ class P2PChessService with ChangeNotifier {
   Timer? _broadcastTimer;
   HttpServer? _server;
 
+  /// Alleen voor tests: verbreek de verbinding abrupt (alsof er een storing is),
+  /// zodat de reconnect-logica getest kan worden.
+  @visibleForTesting
+  Future<void> debugDropConnection() async {
+    await _teardownChannel();
+    _onDisconnected('test: verbinding verbroken');
+  }
+
+  /// Laatst gebruikte host (voor herverbinden) en poort.
+  String? _lastHostIp;
+  int _lastPort = kGamePort;
+
+  /// Interne status voor reconnect-logica.
+  bool _expectingDisconnect = false;
+  int _reconnectAttempt = 0;
+  static const int _maxReconnectAttempts = 8;
+
+  /// Aantal huidige herverbindingspoginger (voor de UI-tekst).
+  int get reconnectAttempt => _reconnectAttempt;
+  int get maxReconnectAttempts => _maxReconnectAttempts;
+
   final StreamController<Map<String, dynamic>> _gameStream =
       StreamController.broadcast();
   Stream<Map<String, dynamic>> get gameStream => _gameStream.stream;
@@ -55,7 +76,8 @@ class P2PChessService with ChangeNotifier {
   bool get isConnected => connectionState == ChessConnectionState.connected;
   bool get isConnecting =>
       connectionState == ChessConnectionState.connecting ||
-      connectionState == ChessConnectionState.searching;
+      connectionState == ChessConnectionState.searching ||
+      connectionState == ChessConnectionState.reconnecting;
   bool get isSearching => connectionState == ChessConnectionState.searching;
   bool get isHost => _mode == P2PMode.host;
   bool get isGameOver => game.game_over || flaggedLoser != null;
@@ -178,6 +200,9 @@ class P2PChessService with ChangeNotifier {
   /// Start een host op [port]. Geeft true terug als de server draait.
   Future<bool> startHost({int port = kGamePort, TimeControl? timeControl}) async {
     await leaveGame();
+    _expectingDisconnect = false;
+    _reconnectAttempt = 0;
+    _lastPort = port;
     this.timeControl = timeControl ?? TimeControl.defaultPreset;
     _mode = P2PMode.host;
     playerColor = 'w';
@@ -236,8 +261,11 @@ class P2PChessService with ChangeNotifier {
     );
     // playerColor staat bij de host al op 'w' (gezet in startHost).
     connectionState = ChessConnectionState.connected;
-    // Vertel de joiner dat hij zwart speelt.
+    _reconnectAttempt = 0;
+    // Vertel de joiner dat hij zwart speelt en stuur de huidige stelling,
+    // zodat een herverbindende speler direct weer synchroon loopt.
     _send({'type': 'init', 'color': 'b', 'tc': timeControl.toWire()});
+    _send({'type': 'sync', 'fen': game.fen});
     _gameStream.add({'type': 'connected', 'color': 'b'});
     notifyListeners();
   }
@@ -247,6 +275,10 @@ class P2PChessService with ChangeNotifier {
   Future<bool> joinGame(String hostIp, [int port = kGamePort]) async {
     await _teardownChannel();
     await _stopDiscovery();
+    _expectingDisconnect = false;
+    _reconnectAttempt = 0;
+    _lastHostIp = hostIp;
+    _lastPort = port;
     _mode = P2PMode.join;
     playerColor = 'b';
     game = chess_lib.Chess();
@@ -337,6 +369,13 @@ class P2PChessService with ChangeNotifier {
           notifyListeners();
         }
         break;
+      case 'sync':
+        final fen = data['fen'];
+        if (fen is String && fen != game.fen) {
+          game.load(fen);
+        }
+        _gameStream.add({'type': 'update', 'fen': game.fen});
+        break;
       case 'reset':
         game = chess_lib.Chess();
         flaggedLoser = null;
@@ -365,12 +404,128 @@ class P2PChessService with ChangeNotifier {
     }
   }
 
+  /// Start/vervolgt de reconnect-pogingen. Werkt voor zowel host als joiner.
+  Future<void> _startReconnect() async {
+    if (connectionState == ChessConnectionState.disconnected) return; // opgegeven
+    _reconnectAttempt++;
+    if (_reconnectAttempt > _maxReconnectAttempts) {
+      connectionState = ChessConnectionState.disconnected;
+      errorMessage =
+          'Verbinding verloren — na $_maxReconnectAttempts pogingen opgegeven. Tik op "Opnieuw proberen".';
+      _gameStream.add({'type': 'disconnected', 'message': errorMessage});
+      notifyListeners();
+      return;
+    }
+    connectionState = ChessConnectionState.reconnecting;
+    errorMessage =
+        'Verbinding verloren — opnieuw verbinden (poging $_reconnectAttempt/$_maxReconnectAttempts)…';
+    notifyListeners();
+    if (_mode != P2PMode.host) {
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (connectionState != ChessConnectionState.reconnecting) return;
+    }
+    if (_mode == P2PMode.host) {
+      await _listenForReconnect();
+    } else {
+      await _rejoin();
+    }
+  }
+
+  /// Host: bind de server opnieuw op dezelfde poort en wacht op de joiner.
+  Future<void> _listenForReconnect() async {
+    try {
+      await _teardownChannel();
+      await _server?.close(force: true);
+      final server = await HttpServer.bind(InternetAddress.anyIPv4, _lastPort,
+          shared: true);
+      _server = server;
+      server.listen((request) async {
+        if (!WebSocketTransformer.isUpgradeRequest(request)) {
+          request.response.statusCode = HttpStatus.upgradeRequired;
+          await request.response.close();
+          return;
+        }
+        try {
+          final socket = await WebSocketTransformer.upgrade(request);
+          await _server?.close(force: true);
+          _server = null;
+          _attachConnection(socket);
+        } catch (e) {
+          debugPrint('Reconnect upgrade mislukt: $e');
+        }
+      }, onError: (Object e) => debugPrint('Serverfout (reconnect): $e'));
+      // Na 5 s zonder verbinding: nieuwe poging (of opgeven).
+      Future<void>.delayed(const Duration(seconds: 5), () {
+        if (connectionState == ChessConnectionState.reconnecting) {
+          _server?.close(force: true);
+          _server = null;
+          _startReconnect();
+        }
+      });
+    } catch (e) {
+      debugPrint('Reconnect-luisterfout: $e');
+      await _startReconnect();
+    }
+  }
+
+  /// Joiner: probeer opnieuw te verbinden met de host.
+  Future<void> _rejoin() async {
+    final ip = _lastHostIp;
+    if (ip == null) {
+      connectionState = ChessConnectionState.disconnected;
+      errorMessage = 'Geen host-adres bekend om opnieuw mee te verbinden.';
+      notifyListeners();
+      return;
+    }
+    try {
+      await _teardownChannel();
+      final channel =
+          WebSocketChannel.connect(Uri.parse('ws://$ip:$_lastPort'));
+      _channel = channel;
+      _channelSub = channel.stream.listen(
+        (message) => _handleIncomingMessage(message),
+        onError: (_) => _onDisconnected('Verbindingsfout met de host.'),
+        onDone: () => _onDisconnected('De host heeft de verbinding verbroken.'),
+        cancelOnError: false,
+      );
+      await channel.ready.timeout(const Duration(seconds: 5));
+      connectionState = ChessConnectionState.connected;
+      _reconnectAttempt = 0;
+      errorMessage = null;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Reconnect poging $_reconnectAttempt mislukt: $e');
+      await _startReconnect();
+    }
+  }
+
+  /// Handmatig opnieuw proberen vanuit het foutscherm.
+  Future<void> retryConnection() async {
+    if (connectionState != ChessConnectionState.disconnected &&
+        connectionState != ChessConnectionState.error) {
+      return;
+    }
+    _reconnectAttempt = 0;
+    _expectingDisconnect = false;
+    await _startReconnect();
+  }
+
   void _onDisconnected(String message) {
-    connectionState = ChessConnectionState.disconnected;
-    errorMessage = message;
     _channelSub?.cancel();
     _channelSub = null;
     _channel = null;
+    final unexpected = !_expectingDisconnect &&
+        _mode != null &&
+        (connectionState == ChessConnectionState.connected ||
+            connectionState == ChessConnectionState.reconnecting);
+    if (unexpected) {
+      errorMessage = message;
+      _gameStream.add({'type': 'reconnecting', 'message': message});
+      _startReconnect();
+      return;
+    }
+    connectionState = ChessConnectionState.disconnected;
+    errorMessage = message;
     _gameStream.add({'type': 'disconnected', 'message': message});
     notifyListeners();
   }
@@ -381,8 +536,14 @@ class P2PChessService with ChangeNotifier {
     final channel = _channel;
     _channel = null;
     try {
-      // WebSocket (dart:io) en WebSocketChannel hebben allebei close().
-      await (channel as dynamic)?.close();
+      // Joiner-kant: web_socket_channel heeft geen .close(), wel .sink.close().
+      // Host-kant (dart:io WebSocket) heeft wel .close().
+      final sink = (channel as dynamic)?.sink;
+      if (sink != null) {
+        await sink.close();
+      } else {
+        await (channel as dynamic)?.close();
+      }
     } catch (_) {
       // Een al gesloten socket mag geen fout geven.
     }
@@ -390,6 +551,8 @@ class P2PChessService with ChangeNotifier {
 
   /// Verlaat het spel en ruim alles op (server, discovery, socket, stelling).
   Future<void> leaveGame() async {
+    _expectingDisconnect = true;
+    _reconnectAttempt = 0;
     await _teardownChannel();
     await _stopDiscovery();
     try {
