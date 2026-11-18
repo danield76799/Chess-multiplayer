@@ -148,13 +148,14 @@ class ChessAI {
   static const int _posInf = 1000000000;
 
   static int _negamax(chess_lib.Chess game, int depth, int alpha, int beta) {
+    final moves = _orderedMoves(game);
+    // Schaakmat of pat moet op ELK niveau beoordeeld worden, ook op het
+    // blad-niveau (depth == 0); anders "ziet" de AI geen mat in 1.
+    if (moves.isEmpty) {
+      return game.in_check ? -_mateScore - depth : 0;
+    }
     if (depth == 0) {
       return _sign(game.turn) * evaluate(game);
-    }
-    final moves = _orderedMoves(game);
-    if (moves.isEmpty) {
-      // Schaakmat (zij aan zet is verloren) of patt.
-      return game.in_check ? -_mateScore - depth : 0;
     }
     var best = _negInf;
     for (final move in moves) {
