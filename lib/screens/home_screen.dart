@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/chess_ai.dart';
+import '../services/chess_stats.dart';
 import '../services/chess_clock.dart';
 import '../theme.dart';
 import '../widgets/time_control_picker.dart';
@@ -21,6 +22,42 @@ class _HomeScreenState extends State<HomeScreen> {
   AIDifficulty _aiDifficulty = AIDifficulty.normaal;
   bool _playerWhite = true;
   TimeControl _timeControl = TimeControl.defaultPreset;
+  ModeStats _aiStats = const ModeStats();
+  ModeStats _wifiStats = const ModeStats();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    final ai = await ChessStats.load(vsAi: true);
+    final wifi = await ChessStats.load(vsAi: false);
+    if (!mounted) return;
+    setState(() {
+      _aiStats = ai;
+      _wifiStats = wifi;
+    });
+  }
+
+  Future<void> _resetStats() async {
+    final keuze = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Statistieken wissen?'),
+        content: const Text('Alle win-/verlies- en reeks-tellingen worden op 0 gezet.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuleren')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Wissen')),
+        ],
+      ),
+    );
+    if (keuze == true) {
+      await ChessStats.resetAll();
+      await _loadStats();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +91,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         timeControl: _timeControl,
                         onTimeControlChanged: (tc) =>
                             setState(() => _timeControl = tc),
+                        onGameClosed: _loadStats,
                       ),
                       const SizedBox(height: 16),
-                      const _MultiplayerCard(),
+                      _MultiplayerCard(onGameClosed: _loadStats),
+                      const SizedBox(height: 16),
+                      _StatsCard(
+                        ai: _aiStats,
+                        wifi: _wifiStats,
+                        onReset: _resetStats,
+                      ),
                       const SizedBox(height: 20),
                       const Text(
                         'Offline tegen de computer · Online met z’n tweeën',
@@ -264,6 +308,7 @@ class _SinglePlayerCard extends StatelessWidget {
   final ValueChanged<bool> onColorChanged;
   final TimeControl timeControl;
   final ValueChanged<TimeControl> onTimeControlChanged;
+  final VoidCallback onGameClosed;
 
   const _SinglePlayerCard({
     required this.difficulty,
@@ -272,6 +317,7 @@ class _SinglePlayerCard extends StatelessWidget {
     required this.onColorChanged,
     required this.timeControl,
     required this.onTimeControlChanged,
+    required this.onGameClosed,
   });
 
   @override
@@ -332,7 +378,7 @@ class _SinglePlayerCard extends StatelessWidget {
                   timeControl: timeControl,
                 ),
               ),
-            ),
+            ).then((_) => onGameClosed()),
             icon: const Icon(Icons.play_arrow),
             label: const Text('🎮  Start tegen de computer'),
             style: FilledButton.styleFrom(
@@ -346,7 +392,9 @@ class _SinglePlayerCard extends StatelessWidget {
 }
 
 class _MultiplayerCard extends StatelessWidget {
-  const _MultiplayerCard();
+  const _MultiplayerCard({required this.onGameClosed});
+
+  final VoidCallback onGameClosed;
 
   @override
   Widget build(BuildContext context) {
@@ -358,7 +406,7 @@ class _MultiplayerCard extends StatelessWidget {
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const MenuScreen()),
-        ),
+        ).then((_) => onGameClosed()),
         icon: const Icon(Icons.people_alt_outlined),
         label: const Text('🎈  Naar de lobby'),
         style: FilledButton.styleFrom(
@@ -367,6 +415,70 @@ class _MultiplayerCard extends StatelessWidget {
           foregroundColor: ChessTheme.text,
           side: const BorderSide(color: ChessTheme.line),
         ),
+      ),
+    );
+  }
+}
+
+class _StatsCard extends StatelessWidget {
+  const _StatsCard({required this.ai, required this.wifi, required this.onReset});
+
+  final ModeStats ai;
+  final ModeStats wifi;
+  final VoidCallback onReset;
+
+  Widget _line(String emoji, String label, ModeStats s) {
+    final score = s.isEmpty
+        ? 'nog geen potjes'
+        : '${s.wins}× gewonnen · ${s.draws}× gelijk · ${s.losses}× verloren';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(label,
+                style: const TextStyle(color: ChessTheme.text, fontSize: 13.5, fontWeight: FontWeight.w600)),
+          ),
+          Text(score,
+              style: const TextStyle(color: ChessTheme.textDim, fontSize: 12.5)),
+          if (s.streak >= 2) ...[
+            const SizedBox(width: 8),
+            Text('🔥${s.streak}',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: ChessTheme.gold)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _ModeCard(
+      icon: Icons.emoji_events_outlined,
+      title: 'Jouw resultaten',
+      subtitle: 'Winst, verlies en winstreeksen',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _line('🤖', 'Computer', ai),
+          _line('📡', 'Via wifi met een vriend', wifi),
+          const Divider(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text('Beste reeks: ${ai.bestStreak > wifi.bestStreak ? ai.bestStreak : wifi.bestStreak} zeges',
+                  style: const TextStyle(color: ChessTheme.textDim, fontSize: 11)),
+              const Spacer(),
+              IconButton(
+                tooltip: 'Statistieken wissen',
+                onPressed: onReset,
+                icon: const Icon(Icons.restart_alt, size: 18, color: ChessTheme.textDim),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

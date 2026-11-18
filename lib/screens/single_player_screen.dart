@@ -7,6 +7,9 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../services/chess_ai.dart';
 import '../services/chess_clock.dart';
+import '../services/chess_stats.dart';
+import '../services/game_review.dart';
+import '../widgets/game_review_sheet.dart';
 import '../services/chess_history.dart';
 import '../services/sound_service.dart';
 import '../theme.dart';
@@ -48,8 +51,49 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
   bool _showLastMove = false;
   late final ChessClockSet _clock = ChessClockSet(widget.timeControl);
   int _lastPieceCount = 32;
+  bool _resultRecorded = false;
+  bool _analyzing = false;
 
   bool get _aiPlaysWhite => !widget.playerIsWhite;
+
+  bool get _gameOverNow => _flagged || _game.game_over;
+
+  /// true = speler won, false = speler verloor, null = remise/pat.
+  bool? get _playerWonResult {
+    if (_flagged) {
+      final loserIsPlayer = _flaggedLoser == (widget.playerIsWhite ? 'w' : 'b');
+      return !loserIsPlayer;
+    }
+    if (_game.in_checkmate) {
+      final loserIsWhite = _game.turn == chess_lib.Chess.WHITE;
+      return loserIsWhite != widget.playerIsWhite;
+    }
+    if (_game.in_draw || _game.in_stalemate) return null;
+    return null;
+  }
+
+  /// Sla het resultaat eenmalig op voor de statistieken op het startscherm.
+  void _maybeRecordResult() {
+    if (_resultRecorded || !_gameOverNow) return;
+    _resultRecorded = true;
+    ChessStats.recordResult(vsAi: true, playerWon: _playerWonResult);
+  }
+
+  Future<void> _analyzeGame() async {
+    if (_analyzing || !_gameOverNow) return;
+    setState(() => _analyzing = true);
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    final played = _game.getHistory();
+    final sans = played.map((m) => m.toString()).toList();
+    final review = GameReviewService.analyze(sans, reviewWhite: widget.playerIsWhite);
+    if (!mounted) return;
+    setState(() => _analyzing = false);
+    await showGameReviewSheet(
+      context,
+      review: review,
+      sideLabel: widget.playerIsWhite ? 'Jij speelde wit' : 'Jij speelde zwart',
+    );
+  }
 
   @override
   void initState() {
@@ -116,6 +160,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
     });
     final playerColor = widget.playerIsWhite ? 'w' : 'b';
     SoundService.instance.play(loser == playerColor ? ChessSound.lose : ChessSound.win);
+    _maybeRecordResult();
   }
 
   void _resetClock() {
@@ -184,6 +229,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
       playerWon: playerWon,
     );
     _lastPieceCount = ChessAI.pieceCount(_game);
+    _maybeRecordResult();
   }
 
   void _onUserMove() {
@@ -216,6 +262,7 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
       _controller.resetBoard();
       _aiThinking = false;
       _lastPieceCount = 32;
+      _resultRecorded = false;
       _resetClock();
     });
     _scheduleAiMove(delay: const Duration(milliseconds: 600));
@@ -366,10 +413,27 @@ class _SinglePlayerScreenState extends State<SinglePlayerScreen>
                     CapturedPiecesBar(game: _game),
                     const SizedBox(height: 16),
                     if (gameOver != null)
-                      FilledButton.icon(
-                        onPressed: _reset,
-                        icon: const Icon(Icons.replay),
-                        label: const Text('🔁  Nog een potje!'),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _analyzing ? null : _analyzeGame,
+                            icon: _analyzing
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.analytics_outlined),
+                            label: Text(_analyzing ? 'Analyseren…' : 'Analyse'),
+                          ),
+                          const SizedBox(width: 12),
+                          FilledButton.icon(
+                            onPressed: _reset,
+                            icon: const Icon(Icons.replay),
+                            label: const Text('🔁  Nog een potje!'),
+                          ),
+                        ],
                       ),
                   ],
                 ),

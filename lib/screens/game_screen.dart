@@ -6,6 +6,9 @@ import 'package:chess/chess.dart' as chess_lib;
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../services/chess_ai.dart';
 import '../services/chess_history.dart';
+import '../services/chess_stats.dart';
+import '../services/game_review.dart';
+import '../widgets/game_review_sheet.dart';
 import '../services/p2p_chess_service.dart';
 import '../services/sound_service.dart';
 import '../theme.dart';
@@ -31,6 +34,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   late ChessClockSet _clock;
   Timer? _clockTicker;
   bool _showLastMove = false;
+  bool _resultRecorded = false;
+  bool _analyzing = false;
 
   @override
   void initState() {
@@ -66,6 +71,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         final loser = data['loser'];
         final amLoser = loser != null && loser == _service.playerColor;
         SoundService.instance.play(amLoser ? ChessSound.lose : ChessSound.win);
+        _maybeRecordResult();
       }
     });
     _startClockTicker();
@@ -122,8 +128,54 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       gameOver: game.game_over,
       playerWon: playerWon,
     );
+    _maybeRecordResult();
   }
 
+
+  /// true = jij won, false = je verloor, null = remise/onbekend.
+  bool? get _playerWonResult {
+    final me = _service.playerColor;
+    if (me == null) return null;
+    if (_service.flaggedLoser != null) return _service.flaggedLoser != me;
+    final game = _service.game;
+    if (game.game_over) {
+      if (game.in_checkmate) {
+        // Aan zet = mat gezet
+        final loserIsWhite = game.turn == chess_lib.Chess.WHITE;
+        final meIsWhite = me == 'w';
+        return loserIsWhite != meIsWhite;
+      }
+      return null; // pat of remise
+    }
+    return null;
+  }
+
+  bool get _gameOverNow =>
+      _service.gameOverMessage != null || _service.flaggedLoser != null;
+
+  void _maybeRecordResult() {
+    if (_resultRecorded || !_gameOverNow) return;
+    _resultRecorded = true;
+    ChessStats.recordResult(vsAi: false, playerWon: _playerWonResult);
+  }
+
+  Future<void> _analyzeGame() async {
+    if (_analyzing || !_gameOverNow) return;
+    setState(() => _analyzing = true);
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    final san = _service.game.getHistory().map((m) => m.toString()).toList();
+    final review = GameReviewService.analyze(
+      san,
+      reviewWhite: _service.playerColor == 'w',
+    );
+    if (!mounted) return;
+    setState(() => _analyzing = false);
+    await showGameReviewSheet(
+      context,
+      review: review,
+      sideLabel: _service.playerColor == 'w' ? 'Jij speelde wit' : 'Jij speelde zwart',
+    );
+  }
 
   @override
   void dispose() {
@@ -299,10 +351,30 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                 CapturedPiecesBar(game: service.game),
                 const SizedBox(height: 16),
                 if (gameOver != null)
-                  FilledButton.icon(
-                    onPressed: service.resetGame,
-                    icon: const Icon(Icons.replay),
-                    label: const Text('🔁  Nog een potje!'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _analyzing ? null : _analyzeGame,
+                        icon: _analyzing
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.analytics_outlined),
+                        label: Text(_analyzing ? 'Analyseren…' : 'Analyse'),
+                      ),
+                      const SizedBox(width: 12),
+                      FilledButton.icon(
+                        onPressed: () {
+                          setState(() => _resultRecorded = false);
+                          service.resetGame();
+                        },
+                        icon: const Icon(Icons.replay),
+                        label: const Text('🔁  Nog een potje!'),
+                      ),
+                    ],
                   ),
               ],
             ),
